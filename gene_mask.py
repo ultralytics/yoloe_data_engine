@@ -303,21 +303,35 @@ def worker_sample(args):
     sam2_checkpoint = "../yoloe_data_engine/sam2/checkpoints/sam2.1_hiera_large.pt"
     model_cfg = "configs/sam2.1/sam2.1_hiera_l.yaml"
     
-    os.environ["CUDA_VISIBLE_DEVICES"] = device
+    # Set CUDA device
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(device)
     sam2_model = build_sam2(model_cfg, sam2_checkpoint, device="cuda")
     predictor = SAM2ImagePredictor(sam2_model)
     generate_mask_from_samples(predictor, rank, total, sample_json_dir, batch)
 
 def main(args):
     # model config
-    devices = [f"{idx}" for idx in args.gpus.split(",")]
-    ranks = [int(idx) for idx in args.gpus.split(",")]
-    total = len(ranks)
+    gpu_ids = [int(idx) for idx in args.gpus.split(",")]
+    processes_per_gpu = 2  # Run 2 processes per GPU
+    
+    # Create device and rank assignments
+    devices = []
+    ranks = []
+    for gpu_id in gpu_ids:
+        for _ in range(processes_per_gpu):
+            devices.append(gpu_id)
+            ranks.append(len(ranks))
+    
+    total = len(ranks)  # Total number of processes (8 GPUs * 2 = 16 processes)
+    
+    print(f"Running {total} processes across {len(gpu_ids)} GPUs ({processes_per_gpu} processes per GPU)")
+    print(f"Devices: {devices}")
+    print(f"Ranks: {ranks}")
     
     # Check if using Sample JSON files
     if args.sample_json_dir:
         sample_json_dir = Path(args.sample_json_dir)
-        with Pool(len(devices)) as pool:
+        with Pool(total) as pool:
             _ = pool.map(worker_sample, zip(devices, ranks, [total] * total, [sample_json_dir] * total, [args.batch] * total))
     else:
         # Original COCO annotation mode
@@ -327,7 +341,7 @@ def main(args):
         image_path = Path(args.img_path)
         annotation_path = Path(args.json_path)
         
-        with Pool(len(devices)) as pool:
+        with Pool(total) as pool:
             _ = pool.map(worker, zip(devices, ranks, [total] * total, [image_path] * total, [annotation_path] * total, [args.batch] * total))
 
         annotations = []
