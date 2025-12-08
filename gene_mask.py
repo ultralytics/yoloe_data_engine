@@ -312,7 +312,7 @@ def worker_sample(args):
 def main(args):
     # model config
     gpu_ids = [int(idx) for idx in args.gpus.split(",")]
-    processes_per_gpu = 2  # Run 2 processes per GPU
+    processes_per_gpu = 3  # Run 3 processes per GPU
     
     # Create device and rank assignments
     devices = []
@@ -366,8 +366,8 @@ if __name__ == '__main__':
     
     if USE_SCRIPT_PARAMS:
         # Script parameters - modify these directly
-        SAMPLE_JSON_DIR = "/home/louis/ultra_louis_work/buffer/mixed_engine_buffer/3merge_prediction"
-        GPUS = "0,1,2,3,4,5,6,7" # 
+        SAMPLE_JSON_DIR = "/home/louis/ultra_louis_work/buffer/objv1_engine_buffer/3merge_prediction"
+        GPUS = "0,1,2,3,4,5,6,7" 
         BATCH = False
         
         # Create args object manually
