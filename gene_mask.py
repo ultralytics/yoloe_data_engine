@@ -171,6 +171,14 @@ def generate_mask_from_samples(model: SAM2ImagePredictor, rank, total, sample_js
         pbar.set_postfix({'file': json_file.name})
         
         try:
+            # skip if already processed
+            output_file = output_dir / json_file.name
+
+            if output_file.exists():
+                print(f"Rank {rank}: {json_file.name} already processed, skipping.")
+                pbar.update(1)
+                continue
+
             # Load sample from JSON
             sample = Sample()
             sample.load_from_json(str(json_file))
@@ -229,7 +237,7 @@ def generate_mask_from_samples(model: SAM2ImagePredictor, rank, total, sample_js
                         mask = mask[None]
                     mask_list.append(mask)
                 masks = np.concatenate(mask_list, axis=0)
-                print(f"  Generated {len(masks)} masks for {len(sample.instances)} instances, mask shape={masks.shape}")
+                # print(f"  Generated {len(masks)} masks for {len(sample.instances)} instances, mask shape={masks.shape}")
             except Exception as e:
                 print(f"Error generating masks for {json_file.name}: {e}")
                 pbar.update(1)
@@ -270,7 +278,7 @@ def generate_mask_from_samples(model: SAM2ImagePredictor, rank, total, sample_js
                 print(f"  {json_file.name}: {instances_with_segments}/{len(sample.instances)} instances have segments")
             
             # Save updated sample
-            output_file = output_dir / json_file.name
+      
             sample.save_to_json(str(output_file))
             
         except Exception as e:
@@ -312,7 +320,7 @@ def worker_sample(args):
 def main(args):
     # model config
     gpu_ids = [int(idx) for idx in args.gpus.split(",")]
-    processes_per_gpu = 3  # Run 3 processes per GPU
+    processes_per_gpu = 4  # Run 4 processes per GPU
     
     # Create device and rank assignments
     devices = []
