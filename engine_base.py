@@ -10,14 +10,16 @@ print("set workspace:", workspace)
 def CHECK_SEGMENT(segment):
     # Allow None segments (e.g., when loading data before mask generation)
     if segment is None:
-        return True
+        pass
     
     try:
         seg_arr = np.array(segment, dtype=np.float32)
         if seg_arr.ndim != 2 or seg_arr.shape[1] != 2:
-            return False
-    except Exception:
-        return False
+            raise ValueError("Segment must be a 2D array with shape (N, 2).")
+    except Exception as e:
+        print("Segment conversion error:", e)
+        raise ValueError(f"Invalid segment format: {e}")
+
 
 
 import os
@@ -144,6 +146,10 @@ class YoloBox:
             ious.append(iou)
         return np.array(ious)
 
+
+num_inst=0
+num_none_segment=0
+
 class Instance:
     def __init__(self, bbox=None, **kwargs):
         self.bbox = bbox
@@ -187,6 +193,8 @@ class Instance:
             'other_data': to_serializable(self.other_data)
         }
     def from_dict(self, data: dict):
+
+        
         # Normalize bbox to 1D length-4 if possible
         bbox = data.get('bbox')
         if bbox is not None:
@@ -211,7 +219,6 @@ class Instance:
         self.vpe = data.get('vpe', data.get('vp'))
         self.other_data = data.get('other_data', {})
 
-        CHECK_SEGMENT(self.segment)
 
 
 class Sample:
@@ -289,11 +296,14 @@ class Sample:
             return img.height, img.width
 
     def to_grounding_label(self) -> dict:
-        grounding_data = {}
-        grounding_data['im_file'] = self.im_file
-        
 
-            
+
+
+        global num_inst, num_none_segment
+
+
+        grounding_data = {}
+        grounding_data['im_file'] = self.im_file        
         if self.shape:
         
             grounding_data['shape'] = self.shape
@@ -316,8 +326,48 @@ class Sample:
                 continue
             bbox_n = YoloBox(grounding_data['shape']).load_from_xyxy(bb).xywhn[0]
             bboxes.append(bbox_n)
-            # keep segments if valid else empty
-            segments.append(inst.segment if isinstance(inst.segment, np.ndarray) else [])
+            
+            
+
+            num_inst = num_inst + 1
+            segment=inst.segment
+
+            if  segment is None or segment==[]:
+                num_none_segment = num_none_segment + 1
+                segment=np.array([inst.bbox[0], inst.bbox[1], inst.bbox[2], inst.bbox[1],
+                                    inst.bbox[2], inst.bbox[3], inst.bbox[0], inst.bbox[3]], dtype=np.float32).reshape(-1,2)
+                
+                # print("bbox area:", (bbox[2]-bbox[0])*(bbox[3]-bbox[1]))
+                print(f"num_inst: {num_inst}, num_none_segment: {num_none_segment}")
+
+
+
+            if isinstance(segment, list):
+                segment = np.array(segment, dtype=np.float32)
+
+
+            if isinstance(segment, np.ndarray) and segment.size > 0:
+                
+            
+                CHECK_SEGMENT(segment)
+
+                # normalized by the image size
+                h, w = grounding_data['shape']
+                seg_normalized = segment.copy()
+                seg_normalized[:, 0] = seg_normalized[:, 0] / w
+                seg_normalized[:, 1] = seg_normalized[:, 1] / h
+                segment=seg_normalized
+            elif isinstance(segment, np.ndarray) and segment.size == 0:
+                # empty segment
+                segment = np.zeros((0, 2), dtype=np.float32)
+                assert False, "segment should not be empty here."
+            else:
+                # Use empty numpy array instead of list for consistency
+                segment = np.zeros((0, 2), dtype=np.float32)
+
+
+            segments.append(segment)
+
             text, _ = inst.get_top_text_conf()
             if text not in texts:
                 texts.append(text)
@@ -328,6 +378,7 @@ class Sample:
         grounding_data['cls'] = np.array(cls_list, dtype=np.float32).reshape(-1, 1)
         grounding_data['normalized'] = True
         grounding_data['bbox_format'] = 'xywh'
+        grounding_data['segments'] = segments
 
 
         return grounding_data

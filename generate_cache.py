@@ -17,8 +17,13 @@ from ultralytics.utils import TQDM
 from ultralytics.utils import LOCAL_RANK
 
 
-CACHE_SUFFIX=".engine.cache"
+CACHE_SUFFIX=".engine.segment.cache"
 
+phase_folder="4merge_prediction_with_masks"
+json_folders = {}
+json_folders["final_flickr_separateGT_train_segm.json"] = f"../buffer/flickr_engine_buffer/{phase_folder}"
+json_folders["final_mixed_train_no_coco_segm.json"] = f"../buffer/mixed_engine_buffer/{phase_folder}"
+json_folders["objects365_train_segm.json"] = f"../buffer/objv1_engine_buffer/{phase_folder}"
 from data_engine_agent import Sample
 
 class GroundingDatasetJsonFolder(GroundingDataset):
@@ -38,7 +43,8 @@ class GroundingDatasetJsonFolder(GroundingDataset):
             cache, _ = load_dataset_cache_file(cache_path), True  # attempt to load a *.cache file
             assert cache["version"] == DATASET_CACHE_VERSION  # matches current version
             assert cache["hash"] == get_hash(self.json_file)  # identical hash
-        except (FileNotFoundError, AssertionError, AttributeError, ModuleNotFoundError):
+        except (FileNotFoundError, AssertionError, AttributeError, ModuleNotFoundError, EOFError, Exception):
+            # Regenerate cache if file not found, corrupted, or version mismatch
             cache, _ = self.cache_labels(cache_path), False  # run cache ops
         [cache.pop(k) for k in ("hash", "version")]  # remove items
         labels = cache["labels"]
@@ -64,14 +70,10 @@ class GroundingDatasetJsonFolder(GroundingDataset):
         """
         x = {"labels": []}
         LOGGER.info("Loading annotation file...")
-        json_folders = {}
-        json_folders["final_flickr_separateGT_train_segm.json"] = "../buffer/flickr_engine_buffer/3merge_prediction"
-        json_folders["final_mixed_train_no_coco_segm.json"] = "../buffer/mixed_engine_buffer/3merge_prediction"
-        json_folders["objects365_train_segm.json"] = "../buffer/objv1_engine_buffer/3merge_prediction"
 
         json_folder = json_folders[os.path.basename(self.json_file)]
 
-        json_files = list(Path(json_folder).glob("*.json"))
+        json_files = list(Path(json_folder).glob("*.json"))#[:1000]
         print(f"Found {len(json_files)} json files in folder {json_folder}")   
         for json_file in TQDM(json_files, desc=f"Reading annotations from folder {json_folder}"):
             sam = Sample().load_from_json(json_file) 
@@ -94,12 +96,12 @@ if __name__ == "__main__":
     #                                      img_path="../datasets/flickr/full_images/",
     # )
 
-    dataset = GroundingDatasetJsonFolder(task="detect",
-                                         json_file="../datasets/mixed_grounding/annotations/final_mixed_train_no_coco_segm.json",
-                                         img_path="../datasets/mixed_grounding/gqa/images",
-    )
-
     # dataset = GroundingDatasetJsonFolder(task="detect",
-    #                                      json_file="../datasets/Objects365v1/annotations/objects365_train_segm.json",
-    #                                      img_path="../datasets/Objects365v1/images/train",
+    #                                      json_file="../datasets/mixed_grounding/annotations/final_mixed_train_no_coco_segm.json",
+    #                                      img_path="../datasets/mixed_grounding/gqa/images",
     # )
+
+    dataset = GroundingDatasetJsonFolder(task="detect",
+                                         json_file="../datasets/Objects365v1/annotations/objects365_train_segm.json",
+                                         img_path="../datasets/Objects365v1/images/train",
+    )
