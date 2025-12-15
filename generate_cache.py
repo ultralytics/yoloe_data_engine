@@ -17,20 +17,17 @@ from ultralytics.utils import TQDM
 from ultralytics.utils import LOCAL_RANK
 
 
-CACHE_SUFFIX=".engine.segment.cache"
 
-phase_folder="4merge_prediction_with_masks"
-json_folders = {}
-json_folders["final_flickr_separateGT_train_segm.json"] = f"../buffer/flickr_engine_buffer/{phase_folder}"
-json_folders["final_mixed_train_no_coco_segm.json"] = f"../buffer/mixed_engine_buffer/{phase_folder}"
-json_folders["objects365_train_segm.json"] = f"../buffer/objv1_engine_buffer/{phase_folder}"
+
+
 from data_engine_agent import Sample
 
 class GroundingDatasetJsonFolder(GroundingDataset):
     """
     Dataset class for object detection tasks using annotations from multiple JSON files in a folder.
     """
-
+    CACHE_SUFFIX=".engine.segment.cache"
+    json_folders={}
     def get_labels(self) -> list[dict]:
         """
         Load labels from cache or generate them from JSON file.
@@ -38,18 +35,17 @@ class GroundingDatasetJsonFolder(GroundingDataset):
         Returns:
             (list[dict]): List of label dictionaries, each containing information about an image and its annotations.
         """
-        cache_path = Path(self.json_file).with_suffix(CACHE_SUFFIX)
+        cache_path = Path(self.json_file).with_suffix(GroundingDatasetJsonFolder.CACHE_SUFFIX)
         try:
             cache, _ = load_dataset_cache_file(cache_path), True  # attempt to load a *.cache file
             assert cache["version"] == DATASET_CACHE_VERSION  # matches current version
             assert cache["hash"] == get_hash(self.json_file)  # identical hash
-        except (FileNotFoundError, AssertionError, AttributeError, ModuleNotFoundError, EOFError, Exception):
-            # Regenerate cache if file not found, corrupted, or version mismatch
+        except (FileNotFoundError, AssertionError, AttributeError, ModuleNotFoundError):
             cache, _ = self.cache_labels(cache_path), False  # run cache ops
         [cache.pop(k) for k in ("hash", "version")]  # remove items
         labels = cache["labels"]
 
-        if CACHE_SUFFIX == ".cache":
+        if GroundingDatasetJsonFolder.CACHE_SUFFIX == ".cache":
             self.verify_labels(labels)
 
         self.im_files = [str(label["im_file"]) for label in labels]
@@ -89,19 +85,3 @@ class GroundingDatasetJsonFolder(GroundingDataset):
         return x
 
 
-
-if __name__ == "__main__":
-    # dataset = GroundingDatasetJsonFolder(task="detect",
-    #                                      json_file="../datasets/flickr/annotations/final_flickr_separateGT_train_segm.json",
-    #                                      img_path="../datasets/flickr/full_images/",
-    # )
-
-    # dataset = GroundingDatasetJsonFolder(task="detect",
-    #                                      json_file="../datasets/mixed_grounding/annotations/final_mixed_train_no_coco_segm.json",
-    #                                      img_path="../datasets/mixed_grounding/gqa/images",
-    # )
-
-    dataset = GroundingDatasetJsonFolder(task="detect",
-                                         json_file="../datasets/Objects365v1/annotations/objects365_train_segm.json",
-                                         img_path="../datasets/Objects365v1/images/train",
-    )
