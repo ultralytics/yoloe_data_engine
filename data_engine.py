@@ -117,7 +117,7 @@ class DataEngine:
         print("load model from:", model_path)
         assert False, "YOLOE-26 objv1 is deprecated, please use load_yoloe() instead."
 
-    def load_yoloe(self, segment=True):
+    def load_yoloe(self, segment=False):
         from ultralytics import YOLOE
 
 
@@ -133,7 +133,7 @@ class DataEngine:
             self.model=YOLOE(yaml_file).load(model_path).to(self.device)
             print("load model from:", model_path)
         else:
-            model_path="../ultralytics/yoloe-11l-seg.pt"
+            model_path="../ultralytics/yoloe-11l.pt"
             self.model=YOLOE(model_path).to(self.device)
 
     def set_classes(self,yaml_config=None,name_list=None, text_embed_pt=None):
