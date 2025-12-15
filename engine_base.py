@@ -350,10 +350,9 @@ class Sample:
                 
             
                 CHECK_SEGMENT(segment)
-
-                # normalized by the image size
-                h, w = grounding_data['shape']
-                seg_normalized = segment.copy()
+                # Ensure h and w are Python int/float, not numpy types
+                h, w = int(h), int(w)
+                seg_normalized = segment.astype(np.float32)
                 seg_normalized[:, 0] = seg_normalized[:, 0] / w
                 seg_normalized[:, 1] = seg_normalized[:, 1] / h
                 segment=seg_normalized
