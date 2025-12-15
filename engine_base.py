@@ -377,7 +377,7 @@ class Sample:
         grounding_data['cls'] = np.array(cls_list, dtype=np.float32).reshape(-1, 1)
         grounding_data['normalized'] = True
         grounding_data['bbox_format'] = 'xywh'
-        grounding_data['segments'] = segments
+        # grounding_data['segments'] = segments # disable segments in cache
 
 
         return grounding_data
