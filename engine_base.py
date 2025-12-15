@@ -348,7 +348,7 @@ class Sample:
 
             if isinstance(segment, np.ndarray) and segment.size > 0:
                 
-            
+                h,w=self.shape
                 CHECK_SEGMENT(segment)
                 # Ensure h and w are Python int/float, not numpy types
                 h, w = int(h), int(w)
