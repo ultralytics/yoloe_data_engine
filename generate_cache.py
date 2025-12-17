@@ -67,7 +67,7 @@ class GroundingDatasetJsonFolder(GroundingDataset):
         x = {"labels": []}
         LOGGER.info("Loading annotation file...")
 
-        json_folder = json_folders[os.path.basename(self.json_file)]
+        json_folder = GroundingDatasetJsonFolder.json_folders[os.path.basename(self.json_file)]
 
         json_files = list(Path(json_folder).glob("*.json"))#[:1000]
         print(f"Found {len(json_files)} json files in folder {json_folder}")   

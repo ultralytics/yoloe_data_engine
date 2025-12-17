@@ -82,33 +82,81 @@ def generate_data(DATA="flickr" ):
 from generate_cache import GroundingDatasetJsonFolder
 
 
-def generate_cache_process(json_file):
+def generate_cache_process_flickr():
 
 
     # generate cache 
-
-    phase_folder="4merge_prediction_with_masks"
+    GroundingDatasetJsonFolder.CACHE_SUFFIX=".engine1.cache"
+    # phase_folder="4merge_prediction_with_masks"
+    phase_folder="3merge_prediction"
     json_folders = {}
     json_folders["final_flickr_separateGT_train_segm.json"] = f"../buffer/flickr_engine_buffer/{phase_folder}"
     json_folders["final_mixed_train_no_coco_segm.json"] = f"../buffer/mixed_engine_buffer/{phase_folder}"
     json_folders["objects365_train_segm.json"] = f"../buffer/objv1_engine_buffer/{phase_folder}"
-    GroundingDatasetJsonFolder.phase_folder=phase_folder
+    GroundingDatasetJsonFolder.json_folders=json_folders
+
+
+    GroundingDatasetJsonFolder(task="detect",
+                                         json_file="../datasets/flickr/annotations/final_flickr_separateGT_train_segm.json",
+                                         img_path="../datasets/flickr/full_images/",
+    )
+
+def generate_cache_process_mixedgrounding():
+    
+
+    # generate cache 
     GroundingDatasetJsonFolder.CACHE_SUFFIX=".engine.segment.cache"
+    phase_folder="4merge_prediction_with_masks"
+    json_folders = {}
+    json_folders["final_mixed_train_no_coco_segm.json"] = f"../buffer/mixed_engine_buffer/{phase_folder}"
+    GroundingDatasetJsonFolder.json_folders=json_folders
 
-    # dataset = GroundingDatasetJsonFolder(task="detect",
-    #                                      json_file="../datasets/flickr/annotations/final_flickr_separateGT_train_segm.json",
-    #                                      img_path="../datasets/flickr/full_images/",
-    # )
 
-    dataset = GroundingDatasetJsonFolder(task="detect",
+    GroundingDatasetJsonFolder(task="detect",
                                          json_file="../datasets/mixed_grounding/annotations/final_mixed_train_no_coco_segm.json",
                                          img_path="../datasets/mixed_grounding/gqa/images",
     )
 
-    # dataset = GroundingDatasetJsonFolder(task="detect",
+def generate_cache_process_objv1():
+
+
+    # generate cache 
+    # GroundingDatasetJsonFolder.CACHE_SUFFIX=".engine.cache"
+
+    # phase_folder="3merge_prediction"
+    # json_folders = {}
+    # json_folders["final_flickr_separateGT_train_segm.json"] = f"../buffer/flickr_engine_buffer/{phase_folder}"
+    # json_folders["final_mixed_train_no_coco_segm.json"] = f"../buffer/mixed_engine_buffer/{phase_folder}"
+    # json_folders["objects365_train_segm.json"] = f"../buffer/objv1_engine_buffer/{phase_folder}"
+    # GroundingDatasetJsonFolder.json_folders=json_folders
+
+    # GroundingDatasetJsonFolder(task="detect",
     #                                      json_file="../datasets/Objects365v1/annotations/objects365_train_segm.json",
-    #                                      img_path="../datasets/Objects365v1/images/train",
-    # )
+    #                                      img_path="../datasets/Objects365v1/images/train")
+
+    # generate cache 
+    GroundingDatasetJsonFolder.CACHE_SUFFIX=".engine.segment.cache"
+    phase_folder="4merge_prediction_with_masks"
+    json_folders = {}
+    json_folders["objects365_train_segm.json"] = f"../buffer/objv1_engine_buffer/{phase_folder}"
+    GroundingDatasetJsonFolder.json_folders=json_folders
+
+    GroundingDatasetJsonFolder(task="detect",
+                                         json_file="../datasets/Objects365v1/annotations/objects365_train_segm.json",
+                                         img_path="../datasets/Objects365v1/images/train")
+
+
+
+
+# dataset = GroundingDatasetJsonFolder(task="detect",
+#                                      json_file="../datasets/mixed_grounding/annotations/final_mixed_train_no_coco_segm.json",
+#                                      img_path="../datasets/mixed_grounding/gqa/images",
+# )
+
+# dataset = GroundingDatasetJsonFolder(task="detect",
+#                                      json_file="../datasets/Objects365v1/annotations/objects365_train_segm.json",
+#                                      img_path="../datasets/Objects365v1/images/train",
+# )
 
 
 
@@ -118,8 +166,10 @@ def generate_cache_process(json_file):
 if __name__ == "__main__":
 
 
-    generate_data()
-    generate_cache_process()
+    # generate_data()
+    # generate_cache_process_flickr()
+    # generate_cache_process_mixedgrounding()
+    generate_cache_process_objv1()
 
 
 
