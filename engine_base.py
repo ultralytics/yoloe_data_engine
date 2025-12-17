@@ -377,7 +377,7 @@ class Sample:
         grounding_data['cls'] = np.array(cls_list, dtype=np.float32).reshape(-1, 1)
         grounding_data['normalized'] = True
         grounding_data['bbox_format'] = 'xywh'
-        # grounding_data['segments'] = segments # disable segments in cache
+        grounding_data['segments'] = segments # disable segments in cache
 
 
         return grounding_data
@@ -734,36 +734,3 @@ def visualize_sample(sample: Sample, dst_vis_img: Path | str, image_root: Path |
 
 
 
-if __name__ == "__main__":
-    # sam= Sample().load_from_yolo_txt(im_file="/root/ultra_louis_work/datasets/Objects365v1_5000/images/train/obj365_train_000000000003.jpg",
-    #                                  txt_path="/root/ultra_louis_work/datasets/Objects365v1_5000/labels/train/obj365_train_000000000003.txt", yaml_file="/root/ultra_louis_work/datasets/Objects365v1.yaml")
-
-
-    # sam.save_to_yolo_txt(txt_path="../runs/visual_yolo_txt/obj365_train_000000000003_saved.txt",inst_format="bbox")
-
-
-    # sam2=Sample().load_from_yolo_txt(im_file="/root/ultra_louis_work/datasets/Objects365v1_5000/images/train/obj365_train_000000000003.jpg", txt_path="../runs/visual_yolo_txt/obj365_train_000000000003_saved.txt", yaml_file="/root/ultra_louis_work/datasets/Objects365v1.yaml")
-
-    # output_path = Path(f"../runs/visual_yolo_txt1/visual_img.jpg")
-    # saved_path = visualize_sample(sam2, output_path)
-
-
-    # print(f"Saved visualization to {saved_path}")
-
-
-    json_dir="../buffer/mixed_engine_buffer/4merge_prediction_with_masks"
-
-    if not os.path.exists(json_dir):
-        print(f"{json_dir} not exists")
-        exit(0)
-
-    index=7
-    json_name=os.listdir(json_dir)[index]
-    
-    json_path=os.path.join(json_dir, json_name)
-    
-
-    sam=Sample().load_from_json(json_path)
-    
-    output_path = Path(f"../runs/visual_json_detection_{index}/visual_img.jpg")
-    saved_path = visualize_sample(sam, output_path)
