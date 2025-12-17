@@ -153,32 +153,24 @@ def generate_mask_annos(model: SAM2ImagePredictor, rank, total, image_path: Path
     with open(annotation_mask_path, 'w') as f:
         json.dump(data, f)
 
-def generate_mask_from_samples(model: SAM2ImagePredictor, rank, total, sample_json_dir: Path, batch: bool):
+def generate_mask_from_samples(model: SAM2ImagePredictor, rank, total, todo_json_files: list, sample_json_dir: Path, batch: bool):
     """Generate segmentation masks from Sample JSON files."""
     
     # Output directory for results
     output_dir = Path(sample_json_dir).parent / "4merge_prediction_with_masks"
     output_dir.mkdir(parents=True, exist_ok=True)
     
-    # Get all JSON files in the directory
-    json_files = sorted(Path(sample_json_dir).glob("*.json")) # [:128]
-    
-    # Split by rank for multi-GPU processing
-    json_files = np.array_split(json_files, total)[rank].tolist()
+    # Split todo_json_files by rank for multi-GPU processing
+    json_files = np.array_split(todo_json_files, total)[rank].tolist()
     
     pbar = tqdm(json_files, desc=f'Rank {rank} - Processing Samples')
     for json_file in pbar:
         pbar.set_postfix({'file': json_file.name})
         
         try:
-            # skip if already processed
+            # Output path
             output_file = output_dir / json_file.name
-
-            if output_file.exists():
-                print(f"Rank {rank}: {json_file.name} already processed, skipping.")
-                pbar.update(1)
-                continue
-
+            
             # Load sample from JSON
             sample = Sample()
             sample.load_from_json(str(json_file))
@@ -187,11 +179,12 @@ def generate_mask_from_samples(model: SAM2ImagePredictor, rank, total, sample_js
             im_file = sample.im_file
             if not Path(im_file).exists():
                 # Try to resolve relative path
-                if Path(sample_json_dir).parent.parent / im_file:
-                    im_file = Path(sample_json_dir).parent.parent / im_file
+                resolved_path = Path(sample_json_dir).parent.parent / im_file
+                if resolved_path.exists():
+                    im_file = resolved_path
             
             if not Path(im_file).exists():
-                print(f"Warning: Image file not found for {json_file.name}, skipping")
+                print(f"Rank {rank}: Warning: Image file not found for {json_file.name} (tried: {im_file}), skipping")
                 pbar.update(1)
                 continue
             
@@ -209,6 +202,10 @@ def generate_mask_from_samples(model: SAM2ImagePredictor, rank, total, sample_js
                         boxes.append([x1, y1, x2, y2])
             
             if len(boxes) == 0:
+                print(f"Rank {rank}: {json_file.name} has no valid bounding boxes, skipping")
+                # Save updated sample
+                sample.save_to_json(str(output_file))
+                print(f"Rank {rank}: Saved {output_file.name}")
                 pbar.update(1)
                 continue
             
@@ -274,12 +271,11 @@ def generate_mask_from_samples(model: SAM2ImagePredictor, rank, total, sample_js
             # Check which instances got segments
             instances_with_segments = sum(1 for inst in sample.instances if inst.segment is not None)
             instances_without_segments = len(sample.instances) - instances_with_segments
-            if instances_without_segments > 0:
-                print(f"  {json_file.name}: {instances_with_segments}/{len(sample.instances)} instances have segments")
+            print(f"Rank {rank}: {json_file.name}: {instances_with_segments}/{len(sample.instances)} instances have segments")
             
             # Save updated sample
-      
             sample.save_to_json(str(output_file))
+            print(f"Rank {rank}: Saved {output_file.name}")
             
         except Exception as e:
             import traceback
@@ -306,7 +302,7 @@ def worker(args):
 
 def worker_sample(args):
     """Worker for processing Sample JSON files."""
-    device, rank, total, sample_json_dir, batch = args
+    device, rank, total, todo_json_files, sample_json_dir, batch = args
 
     sam2_checkpoint = "../yoloe_data_engine/sam2/checkpoints/sam2.1_hiera_large.pt"
     model_cfg = "configs/sam2.1/sam2.1_hiera_l.yaml"
@@ -315,12 +311,12 @@ def worker_sample(args):
     os.environ["CUDA_VISIBLE_DEVICES"] = str(device)
     sam2_model = build_sam2(model_cfg, sam2_checkpoint, device="cuda")
     predictor = SAM2ImagePredictor(sam2_model)
-    generate_mask_from_samples(predictor, rank, total, sample_json_dir, batch)
+    generate_mask_from_samples(predictor, rank, total, todo_json_files, sample_json_dir, batch)
 
 def main(args):
     # model config
     gpu_ids = [int(idx) for idx in args.gpus.split(",")]
-    processes_per_gpu = 4  # Run 4 processes per GPU
+    processes_per_gpu = 1  # Run 4 processes per GPU
     
     # Create device and rank assignments
     devices = []
@@ -336,11 +332,34 @@ def main(args):
     print(f"Devices: {devices}")
     print(f"Ranks: {ranks}")
     
+
+    def get_todo_json_file(sample_json_dir: Path, dst_sample_json_dir: Path) -> list:
+        sample_files = sorted(list(sample_json_dir.glob("*.json")))
+        dst_sample_files = sorted(list(dst_sample_json_dir.glob("*.json")))
+        dst_file_names={f.name for f in dst_sample_files}
+        todo_json_files=[]
+        # tqdm for progress bar 
+        for json_file in tqdm(sample_files, desc="Checking Sample JSON files"):
+            if json_file.name not in dst_file_names:
+                todo_json_files.append(json_file)
+        return todo_json_files
+
+
+
     # Check if using Sample JSON files
     if args.sample_json_dir:
-        sample_json_dir = Path(args.sample_json_dir)
+        sample_json_dir = Path(args.sample_json_dir)        
+        dst_sample_json_dir = Path(sample_json_dir).parent / "4merge_prediction_with_masks"
+        # Get files that need to be processed
+        todo_json_files = get_todo_json_file(sample_json_dir, dst_sample_json_dir)
+        print(f"Total {len(todo_json_files)} Sample JSON files to process")
+        
+        if len(todo_json_files) == 0:
+            print("No files to process. All files have been processed.")
+            return
+
         with Pool(total) as pool:
-            _ = pool.map(worker_sample, zip(devices, ranks, [total] * total, [sample_json_dir] * total, [args.batch] * total))
+            _ = pool.map(worker_sample, zip(devices, ranks, [total] * total, [todo_json_files] * total, [sample_json_dir] * total, [args.batch] * total))
     else:
         # Original COCO annotation mode
         if not args.img_path or not args.json_path:
@@ -374,8 +393,8 @@ if __name__ == '__main__':
     
     if USE_SCRIPT_PARAMS:
         # Script parameters - modify these directly
-        SAMPLE_JSON_DIR = "/home/louis/ultra_louis_work/buffer/objv1_engine_buffer/3merge_prediction"
-        GPUS = "0,1,2,3,4,5,6,7" 
+        SAMPLE_JSON_DIR = "../buffer/objv1_engine_buffer/3merge_prediction"
+        GPUS = "0" 
         BATCH = False
         
         # Create args object manually
