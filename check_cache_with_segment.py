@@ -115,10 +115,10 @@ def check_cache_func(cache_path):
     print(f"  Invalid shapes:           {invalid_shape_count}")
     print(f"  Type errors (not ndarray):{type_error_count}")
     
-    if segment_shapes:
-        print(f"\nSegment shape distribution:")
-        for shape, count in sorted(segment_shapes.items(), key=lambda x: x[1], reverse=True)[:10]:
-            print(f"  {shape}: {count} segments")
+    # if segment_shapes:
+    #     print(f"\nSegment shape distribution:")
+    #     for shape, count in sorted(segment_shapes.items(), key=lambda x: x[1], reverse=True)[:10]:
+    #         print(f"  {shape}: {count} segments")
     
     print("="*100)
 
@@ -127,13 +127,17 @@ def check_cache_func(cache_path):
 
 # Main execution
 if __name__ == "__main__":
-    cache_path="../datasets/mixed_grounding/annotations/final_mixed_train_no_coco_segm.encache"
+    cache_path="../datasets/mixed_grounding/annotations/final_mixed_train_no_coco_segm.engine.segment.cache"
     check_cache_func(cache_path)
-    
-    # Uncomment to check other caches:
-    # cache_path="../datasets/flickr/annotations/final_flickr_separateGT_train_segm.cache"
-    # check_cache_func(cache_path)
-    
+    cache_path="../datasets/mixed_grounding/annotations/final_mixed_train_no_coco_segm.engine.cache"
+    check_cache_func(cache_path)
+
+    cache_path="../datasets/Objects365v1/annotations/objects365_train_segm.engine.segment.cache"
+    check_cache_func(cache_path)
     cache_path="../datasets/Objects365v1/annotations/objects365_train_segm.engine.cache"
     check_cache_func(cache_path)
 
+    cache_path="../datasets/flickr/annotations/final_flickr_separateGT_train_segm.engine.segment.cache"
+    check_cache_func(cache_path)
+    cache_path="../datasets/flickr/annotations/final_flickr_separateGT_train_segm.engine.cache"
+    check_cache_func(cache_path)

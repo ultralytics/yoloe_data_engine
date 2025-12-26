@@ -1,7 +1,10 @@
-import ultralytics,os
-workspace = os.path.dirname(os.path.dirname(os.path.abspath(ultralytics.__file__)))
-os.chdir(workspace)
-print("set workspace:", workspace)
+import os,sys
+sys.path.append("/home/louis/ultra_louis_work")
+
+from lyutils import set_ultra_dir
+set_ultra_dir()
+
+
 
 
 from yoloe_data_engine.data_engine import DataEngine
@@ -105,8 +108,8 @@ def generate_cache_process_mixedgrounding():
     
 
     # generate cache 
-    GroundingDatasetJsonFolder.CACHE_SUFFIX=".engine.segment.cache"
-    phase_folder="4merge_prediction_with_masks"
+    GroundingDatasetJsonFolder.CACHE_SUFFIX=".engine1.cache"
+    phase_folder="5final"
     json_folders = {}
     json_folders["final_mixed_train_no_coco_segm.json"] = f"../buffer/mixed_engine_buffer/{phase_folder}"
     GroundingDatasetJsonFolder.json_folders=json_folders
@@ -135,8 +138,8 @@ def generate_cache_process_objv1():
     #                                      img_path="../datasets/Objects365v1/images/train")
 
     # generate cache 
-    GroundingDatasetJsonFolder.CACHE_SUFFIX=".engine.segment.cache"
-    phase_folder="4merge_prediction_with_masks"
+    GroundingDatasetJsonFolder.CACHE_SUFFIX=".engine1.cache"
+    phase_folder="5final"
     json_folders = {}
     json_folders["objects365_train_segm.json"] = f"../buffer/objv1_engine_buffer/{phase_folder}"
     GroundingDatasetJsonFolder.json_folders=json_folders
@@ -168,7 +171,7 @@ if __name__ == "__main__":
 
     # generate_data()
     # generate_cache_process_flickr()
-    # generate_cache_process_mixedgrounding()
+    generate_cache_process_mixedgrounding()
     generate_cache_process_objv1()
 
 

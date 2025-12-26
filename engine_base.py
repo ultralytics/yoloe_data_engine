@@ -1,16 +1,11 @@
 
 from matplotlib.pylab import sample
-import ultralytics,os   
-workspace = os.path.dirname(os.path.dirname(os.path.abspath(ultralytics.__file__)))
-os.chdir(workspace)
-print("set workspace:", workspace)
-
 
 
 def CHECK_SEGMENT(segment):
     # Allow None segments (e.g., when loading data before mask generation)
     if segment is None:
-        pass
+        return 
     
     try:
         seg_arr = np.array(segment, dtype=np.float32)
@@ -18,7 +13,7 @@ def CHECK_SEGMENT(segment):
             raise ValueError("Segment must be a 2D array with shape (N, 2).")
     except Exception as e:
         print("Segment conversion error:", e)
-        raise ValueError(f"Invalid segment format: {e}")
+        raise ValueError(f"Invalid segment format: {e}, but got segment type: {type(segment)}")
 
 
 
@@ -219,6 +214,21 @@ class Instance:
         self.vpe = data.get('vpe', data.get('vp'))
         self.other_data = data.get('other_data', {})
 
+    def get_inst_id(self,):
+        assert isinstance(self.text, list) and len(self.text) ==1, "Only support single text per instance for get_inst_id"
+
+        stri=self.text[0]
+        bbox=[ int(x)  for x in self.bbox]
+        assert len(bbox)==4, "bbox should be length 4 for get_inst_id"
+        # each number with fixed length 5
+        bbox_stri="_".join([f"{x:05d}" for x in bbox])
+        inst_id=f"{stri}_{bbox_stri}"
+        # hash
+        import hashlib
+        inst_id_hash=hashlib.md5(inst_id.encode('utf-8')).hexdigest()
+        self.inst_id_hash=inst_id_hash
+        self.inst_id=inst_id
+        return inst_id_hash
 
 
 class Sample:
