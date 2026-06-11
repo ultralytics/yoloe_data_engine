@@ -1,34 +1,36 @@
+# YOLOE Data Engine Pipeline
 
+This repository contains working scripts for preparing and refining YOLOE grounding and detection training data. The
+pipeline is currently script-driven and expects dataset paths, text embeddings, model weights, and buffer directories to
+be configured in the relevant Python or shell script before running.
 
+## Pipeline
 
-#  pipline of the data engine
-###   read the grounding data from json file
-    for each sample, per-store the others samples sharing the same image.
-    add the 
+1. Load grounding or detection labels from JSON/cache files.
+   - `DataEngine.load_cached_label(...)` loads Ultralytics `.cache` files for `grounding` or `detection` data.
+   - `DataEngineAgent.multi_process_load_grounding_data(...)` converts grounding JSON annotations into per-image sample
+     JSON files.
+2. Run YOLOE predictions.
+   - `DataEngine.load_yoloe()` loads the configured YOLOE model.
+   - `DataEngineAgent.multi_process_batch_model_predict(...)` writes per-image model prediction JSON files under the
+     configured buffer directory.
+3. Merge model predictions into labels.
+   - Predictions with high overlap against existing boxes are skipped.
+   - Remaining predictions are added to sample labels and saved for cache generation or inspection.
+4. Inspect and refine outputs.
+   - Visualization helpers such as `visual_json.py`, `data_visual_flickr.py`, `data_visual_mixed.py`, and
+     `grounding_dataset_visualizer.py` can render generated labels and predictions.
+   - `refine_text.py` refines grounding text prompts and writes updated cache files.
 
-###   model predict and save the jons files
--     visual to check the json files
--  found that some boxes are overlapped heavily, with different text
-- how to deal with these boxes? 
+## Example Scripts
 
-###  merge model prediction to label,
-- discard the bbox with higher iou  ( > 0.8, higher iou , no consider the class or text)
+- `do_flickr.sh` runs the Flickr refinement and visualization flow.
+- `do_mixed.sh` runs the mixed-grounding refinement flow.
+- Edit the hard-coded dataset, model, cache, and environment paths in these scripts before running them.
 
+## Notes
 
-
-
-
--    generate the visual prompt embedding for each instance (bbox)
-
-
--    merge bboxes within the same image ( consider the vpe distance  and text similarity ,bbox iou<0.8 )
-
-
--    transfer to grounding format cache for training
-
-- 
-
-
-to do:
-
-write a tools to visual the bbox ious. within the same images 
+- Several scripts assume an Ultralytics checkout and local dataset layout under `/root/ultra_louis_work/...`.
+- Use a Python environment with `ultralytics`, PyTorch, NumPy, Pillow, Matplotlib, and the other imports required by the
+  selected script.
+- Generated buffer directories and cache files are local artifacts and are not committed here.
