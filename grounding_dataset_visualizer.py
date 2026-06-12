@@ -1,19 +1,12 @@
+"""Visualization helpers for grounding datasets."""
 
-from ultralytics import YOLOE
-from ultralytics.models.yolo.yoloe import YOLOEVPTrainer
-
-import ultralytics,os
-workspace = os.path.dirname(os.path.dirname(os.path.abspath(ultralytics.__file__)))
-os.chdir(workspace)
-print("set workspace:", workspace)
-
-
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-import numpy as np
-from PIL import Image
-import cv2
 import colorsys
+import os
+
+import cv2
+import matplotlib.pyplot as plt
+import numpy as np
+import ultralytics
 
 try:
     from ultralytics.data import GroundingDataset
@@ -21,16 +14,24 @@ except ImportError:
     print("Warning: Could not import GroundingDataset from ultralytics")
     GroundingDataset = object  # Fallback to prevent errors
 
+workspace = os.path.dirname(os.path.dirname(os.path.abspath(ultralytics.__file__)))
+os.chdir(workspace)
+print("set workspace:", workspace)
+
 
 class DatasetVisualizer:
-    
+    """Mixin that renders dataset samples with labels and boxes."""
+
     def __init__(self, *args, **kwargs):
+        """Initialize visualization colors after dataset setup."""
         # Initialize with dataset parameters
         super().__init__(*args, **kwargs)
-        self.colors = self._generate_colors(100)  # Generate colors for different classes
-    
+        self.colors = self._generate_colors(
+            100
+        )  # Generate colors for different classes
+
     def _generate_colors(self, num_colors):
-        """Generate distinct colors for visualization"""
+        """Generate distinct colors for visualization."""
         colors = []
         for i in range(num_colors):
             hue = i / num_colors
@@ -38,80 +39,95 @@ class DatasetVisualizer:
             rgb = colorsys.hsv_to_rgb(hue, 0.8, 0.9)
             colors.append([int(c * 255) for c in rgb])
         return colors
-    
+
     def _convert_tensor_to_numpy(self, data):
-        """Convert PyTorch tensor to numpy array if needed"""
-        if hasattr(data, 'cpu'):  # PyTorch tensor
+        """Convert PyTorch tensor to numpy array if needed."""
+        if hasattr(data, "cpu"):  # PyTorch tensor
             return data.cpu().numpy()
         elif isinstance(data, np.ndarray):
             return data
         else:
             return np.array(data)
-    
+
     def _truncate_text(self, text, max_length=20):
-        """Truncate text for display if too long"""
+        """Truncate text for display if too long."""
         if isinstance(text, str) and len(text) > max_length:
-            return text[:max_length-3] + "..."
+            return text[: max_length - 3] + "..."
         return str(text)
-    
+
     def _draw_bbox_on_image(self, image, bbox, label, color, confidence=None):
-        """Draw bounding box and label on image"""
+        """Draw bounding box and label on image."""
         if isinstance(image, np.ndarray):
             img = image.copy()
         else:
             img = np.array(image)
-        
+
         # Convert bbox format - assuming YOLO format [center_x, center_y, width, height]
         center_x, center_y, width, height = bbox
-        
+
         # Convert to xyxy format
         x1 = center_x - width / 2
         y1 = center_y - height / 2
         x2 = center_x + width / 2
         y2 = center_y + height / 2
-        
+
         # Check if coordinates are valid
         if x1 >= x2 or y1 >= y2:
             return img
-        
+
         # Check if coordinates are within image bounds
         h, w = img.shape[:2]
-        
+
         # Convert normalized coordinates to pixel coordinates if needed
         if x2 <= 1.0:  # Normalized coordinates
             x1, x2 = x1 * w, x2 * w
             y1, y2 = y1 * h, y2 * h
-        
+
         # Ensure coordinates are within image bounds
-        x1 = max(0, min(w-1, x1))
-        y1 = max(0, min(h-1, y1))
-        x2 = max(0, min(w-1, x2))
-        y2 = max(0, min(h-1, y2))
-        
+        x1 = max(0, min(w - 1, x1))
+        y1 = max(0, min(h - 1, y1))
+        x2 = max(0, min(w - 1, x2))
+        y2 = max(0, min(h - 1, y2))
+
         # Draw rectangle
         cv2.rectangle(img, (int(x1), int(y1)), (int(x2), int(y2)), color, 2)
-        
+
         # Prepare label text (truncate if too long)
         label_text = self._truncate_text(label, max_length=15)
         if confidence is not None:
             label_text += f" {confidence:.2f}"
-        
+
         # Draw label background
-        (text_width, text_height), _ = cv2.getTextSize(label_text, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 1)
-        cv2.rectangle(img, (int(x1), int(y1) - text_height - 10), 
-                     (int(x1) + text_width, int(y1)), color, -1)
-        
+        (text_width, text_height), _ = cv2.getTextSize(
+            label_text, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 1
+        )
+        cv2.rectangle(
+            img,
+            (int(x1), int(y1) - text_height - 10),
+            (int(x1) + text_width, int(y1)),
+            color,
+            -1,
+        )
+
         # Draw label text
-        cv2.putText(img, label_text, (int(x1), int(y1) - 5), 
-                   cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
-        
+        cv2.putText(
+            img,
+            label_text,
+            (int(x1), int(y1) - 5),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.6,
+            (255, 255, 255),
+            1,
+        )
+
         return img
 
     def visualize(self, idx: int):
-        """Visualize a single sample from the dataset"""
+        """Visualize a single sample from the dataset."""
         # Get sample data
         sample = self.__getitem__(idx)
-        print(f"Sample keys: {list(sample.keys()) if isinstance(sample, dict) else 'Not a dict'}")
+        sample_keys = list(sample.keys()) if isinstance(sample, dict) else "Not a dict"
+        print(f"Sample keys: {sample_keys}")
         # # print(sample)
         # print(sample["texts"])
         # print(sample["cls"])
@@ -119,22 +135,24 @@ class DatasetVisualizer:
 
         # Extract image, bboxes, labels, and texts from the sample
         if isinstance(sample, dict):
-            image = sample.get('img', sample.get('image'))
-            bboxes = sample.get('bboxes', sample.get('bbox'))
-            labels = sample.get('cls', sample.get('labels', sample.get('classes')))
-            texts = sample.get('texts', sample.get('text', []))  # Extract text labels
+            image = sample.get("img", sample.get("image"))
+            bboxes = sample.get("bboxes", sample.get("bbox"))
+            labels = sample.get("cls", sample.get("labels", sample.get("classes")))
+            texts = sample.get("texts", sample.get("text", []))  # Extract text labels
         else:
             # If sample is a tuple/list (image, target)
             image, target = sample
             if isinstance(target, dict):
-                bboxes = target.get('bboxes', target.get('bbox'))
-                labels = target.get('cls', target.get('labels', target.get('classes')))
-                texts = target.get('texts', target.get('text', []))
+                bboxes = target.get("bboxes", target.get("bbox"))
+                labels = target.get("cls", target.get("labels", target.get("classes")))
+                texts = target.get("texts", target.get("text", []))
             else:
                 bboxes, labels, texts = target, None, []
-        
-        print(f"Found {len(texts) if texts else 0} text labels: {texts[:3] if texts else 'None'}")
-        
+
+        text_count = len(texts) if texts else 0
+        text_preview = texts[:3] if texts else "None"
+        print(f"Found {text_count} text labels: {text_preview}")
+
         # Convert tensors to numpy arrays
         if image is not None:
             image = self._convert_tensor_to_numpy(image)
@@ -142,7 +160,7 @@ class DatasetVisualizer:
             bboxes = self._convert_tensor_to_numpy(bboxes)
         if labels is not None:
             labels = self._convert_tensor_to_numpy(labels)
-        
+
         # Convert image if needed
         if isinstance(image, np.ndarray):
             if len(image.shape) == 3 and image.shape[0] == 3:  # CHW format
@@ -153,21 +171,21 @@ class DatasetVisualizer:
             # Ensure proper data type
             if image.dtype != np.uint8:
                 image = image.astype(np.uint8)
-        
+
         # Handle different bbox and label formats
         if bboxes is not None and len(bboxes) > 0:
             # Flatten labels if they have extra dimensions
             if labels is not None and len(labels.shape) > 1:
                 labels = labels.flatten()
-            
+
             print(f"texts: {texts}")
             print(f"labels: {labels}")
-            
+
             # Draw bboxes on image
             viz_image = image.copy()
             for i, bbox in enumerate(bboxes):
                 color = self.colors[i % len(self.colors)]
-                
+
                 # Use class index to get text label from texts array
                 if labels is not None and i < len(labels) and texts:
                     class_idx = int(labels[i])
@@ -184,11 +202,11 @@ class DatasetVisualizer:
                     label = f"class_{int(labels[i])}"
                 else:
                     label = f"obj_{i}"
-                
+
                 viz_image = self._draw_bbox_on_image(viz_image, bbox, label, color)
         else:
             viz_image = image
-        
+
         # Display using matplotlib
         plt.figure(figsize=(12, 8))
         if len(viz_image.shape) == 3:
@@ -198,53 +216,55 @@ class DatasetVisualizer:
             else:
                 plt.imshow(viz_image)
         else:
-            plt.imshow(viz_image, cmap='gray')
+            plt.imshow(viz_image, cmap="gray")
         plt.title(f"Sample {idx}")
-        plt.axis('off')
+        plt.axis("off")
         plt.tight_layout()
         plt.show()
-        
+
         return viz_image
 
     def batch_visualize(self, indices: list):
-        """
-        Show multiple samples in matplotlib subplots
-        """
+        """Show multiple samples in matplotlib subplots."""
         n_samples = len(indices)
         if n_samples == 1:
             self.visualize(indices[0])
             return
-        
+
         # Calculate subplot layout
         cols = min(3, n_samples)
         rows = (n_samples + cols - 1) // cols
-        
-        fig, axes = plt.subplots(rows, cols, figsize=(5*cols, 5*rows))
+
+        _fig, axes = plt.subplots(rows, cols, figsize=(5 * cols, 5 * rows))
         if rows == 1:
             axes = [axes] if cols == 1 else axes
         else:
             axes = axes.flatten() if n_samples > 1 else [axes]
-        
+
         for i, idx in enumerate(indices):
             # Get sample data
             sample = self.__getitem__(idx)
-            
+
             # Extract image, bboxes, labels, and texts from the sample
             if isinstance(sample, dict):
-                image = sample.get('img', sample.get('image'))
-                bboxes = sample.get('bboxes', sample.get('bbox'))
-                labels = sample.get('cls', sample.get('labels', sample.get('classes')))
-                texts = sample.get('texts', sample.get('text', []))  # Extract text labels
+                image = sample.get("img", sample.get("image"))
+                bboxes = sample.get("bboxes", sample.get("bbox"))
+                labels = sample.get("cls", sample.get("labels", sample.get("classes")))
+                texts = sample.get(
+                    "texts", sample.get("text", [])
+                )  # Extract text labels
             else:
                 # If sample is a tuple/list (image, target)
                 image, target = sample
                 if isinstance(target, dict):
-                    bboxes = target.get('bboxes', target.get('bbox'))
-                    labels = target.get('cls', target.get('labels', target.get('classes')))
-                    texts = target.get('texts', target.get('text', []))
+                    bboxes = target.get("bboxes", target.get("bbox"))
+                    labels = target.get(
+                        "cls", target.get("labels", target.get("classes"))
+                    )
+                    texts = target.get("texts", target.get("text", []))
                 else:
                     bboxes, labels, texts = target, None, []
-            
+
             # Convert tensors to numpy arrays
             if image is not None:
                 image = self._convert_tensor_to_numpy(image)
@@ -252,7 +272,7 @@ class DatasetVisualizer:
                 bboxes = self._convert_tensor_to_numpy(bboxes)
             if labels is not None:
                 labels = self._convert_tensor_to_numpy(labels)
-            
+
             # Convert image if needed
             if isinstance(image, np.ndarray):
                 if len(image.shape) == 3 and image.shape[0] == 3:  # CHW format
@@ -263,18 +283,18 @@ class DatasetVisualizer:
                 # Ensure proper data type
                 if image.dtype != np.uint8:
                     image = image.astype(np.uint8)
-            
+
             # Handle different bbox and label formats
             if bboxes is not None and len(bboxes) > 0:
                 # Flatten labels if they have extra dimensions
                 if labels is not None and len(labels.shape) > 1:
                     labels = labels.flatten()
-                
+
                 # Draw bboxes on image
                 viz_image = image.copy()
                 for j, bbox in enumerate(bboxes):
                     color = self.colors[j % len(self.colors)]
-                    
+
                     # Use class index to get text label from texts array
                     if labels is not None and j < len(labels) and texts:
                         class_idx = int(labels[j])
@@ -291,11 +311,11 @@ class DatasetVisualizer:
                         label = f"class_{int(labels[j])}"
                     else:
                         label = f"obj_{j}"
-                    
+
                     viz_image = self._draw_bbox_on_image(viz_image, bbox, label, color)
             else:
                 viz_image = image
-            
+
             # Display in subplot
             ax = axes[i] if n_samples > 1 else axes[0]
             if len(viz_image.shape) == 3:
@@ -305,139 +325,146 @@ class DatasetVisualizer:
                 else:
                     ax.imshow(viz_image)
             else:
-                ax.imshow(viz_image, cmap='gray')
+                ax.imshow(viz_image, cmap="gray")
             ax.set_title(f"Sample {idx}")
-            ax.axis('off')
-        
+            ax.axis("off")
+
         # Hide unused subplots
         for i in range(n_samples, len(axes)):
-            axes[i].axis('off')
-        
+            axes[i].axis("off")
+
         plt.tight_layout()
         plt.show()
 
     def random_visualize(self, n=5):
+        """Visualize a random subset of dataset samples."""
         import random
+
         indices = random.sample(range(len(self)), n)
         self.batch_visualize(indices)
-    
+
     def save_visualization(self, idx: int, save_path: str):
-        """Save visualization to file"""
+        """Save visualization to file."""
         viz_image = self.visualize(idx)
         if viz_image is not None:
             cv2.imwrite(save_path, viz_image)
             print(f"Visualization saved to {save_path}")
-    
+
     def get_dataset_info(self):
-        """Get basic information about the dataset"""
+        """Get basic information about the dataset."""
         try:
             print(f"Dataset length: {len(self)}")
-            
+
             # Sample first item to understand structure
             sample = self.__getitem__(0)
             print(f"Sample type: {type(sample)}")
-            
+
             if isinstance(sample, dict):
                 print(f"Sample keys: {list(sample.keys())}")
-                if 'img' in sample:
+                if "img" in sample:
                     print(f"Image shape: {sample['img'].shape}")
-                if 'bboxes' in sample:
+                if "bboxes" in sample:
                     print(f"Number of bboxes: {len(sample['bboxes'])}")
-                if 'cls' in sample:
+                if "cls" in sample:
                     print(f"Classes: {sample['cls']}")
             else:
                 print(f"Sample structure: {[type(x) for x in sample]}")
-                
+
         except Exception as e:
             print(f"Error getting dataset info: {e}")
-    
+
     def visualize_class_distribution(self, max_samples=1000):
-        """Visualize the distribution of classes in the dataset"""
+        """Visualize the distribution of classes in the dataset."""
         class_counts = {}
         n_samples = min(len(self), max_samples)
-        
+
         for i in range(n_samples):
             try:
                 sample = self.__getitem__(i)
                 labels = None
-                
+
                 if isinstance(sample, dict):
-                    labels = sample.get('cls', sample.get('labels', sample.get('classes')))
+                    labels = sample.get(
+                        "cls", sample.get("labels", sample.get("classes"))
+                    )
                 else:
                     _, target = sample
                     if isinstance(target, dict):
-                        labels = target.get('cls', target.get('labels', target.get('classes')))
-                
+                        labels = target.get(
+                            "cls", target.get("labels", target.get("classes"))
+                        )
+
                 if labels is not None:
                     # Convert tensor to numpy if needed
                     labels = self._convert_tensor_to_numpy(labels)
                     # Flatten if needed
                     if len(labels.shape) > 1:
                         labels = labels.flatten()
-                    
+
                     for label in labels:
-                        class_counts[str(int(label))] = class_counts.get(str(int(label)), 0) + 1
-                        
+                        class_counts[str(int(label))] = (
+                            class_counts.get(str(int(label)), 0) + 1
+                        )
+
             except Exception as e:
                 print(f"Error processing sample {i}: {e}")
                 continue
-        
+
         # Plot distribution
         if class_counts:
             plt.figure(figsize=(12, 6))
             classes = list(class_counts.keys())
             counts = list(class_counts.values())
-            
+
             plt.bar(classes[:20], counts[:20])  # Show top 20 classes
-            plt.xlabel('Class')
-            plt.ylabel('Count')
-            plt.title('Class Distribution (Top 20)')
+            plt.xlabel("Class")
+            plt.ylabel("Count")
+            plt.title("Class Distribution (Top 20)")
             plt.xticks(rotation=45)
             plt.tight_layout()
             plt.show()
-            
+
             print(f"Total classes found: {len(class_counts)}")
-            print(f"Most frequent classes: {sorted(class_counts.items(), key=lambda x: x[1], reverse=True)[:10]}")
+            frequent_classes = sorted(
+                class_counts.items(), key=lambda x: x[1], reverse=True
+            )[:10]
+            print(f"Most frequent classes: {frequent_classes}")
         else:
             print("No class information found in dataset")
 
 
-
-
-
 class GroundingDatasetVisualizer(GroundingDataset, DatasetVisualizer):
+    """Grounding dataset with visualization helper methods."""
 
     pass
-    
 
 
 if __name__ == "__main__":
+    img_path = ("../datasets/mixed_grounding/gqa/images",)
+    json_file = (
+        "../datasets/mixed_grounding/annotations/final_mixed_train_no_coco_segm.json",
+    )
 
-
-
-    img_path="../datasets/mixed_grounding/gqa/images",
-    json_file="../datasets/mixed_grounding/annotations/final_mixed_train_no_coco_segm.json",
-
-    visualizer = GroundingDatasetVisualizer(json_file=json_file, img_path=img_path, augment=False)
+    visualizer = GroundingDatasetVisualizer(
+        json_file=json_file, img_path=img_path, augment=False
+    )
 
     # Get dataset information
     print("=== Dataset Information ===")
     visualizer.get_dataset_info()
-    
+
     # Visualize single sample to test text labls
     print("\n=== Single Sample Visualization ===")
     # visualizer.visualize(1)
-    
+
     # Uncomment these for more visualizations:
     # print("\n=== Batch Visualization ===")
-    visualizer.batch_visualize([0,1,2,3,4])
-    
+    visualizer.batch_visualize([0, 1, 2, 3, 4])
+
     # Random visualization
     print("\n=== Random Visualization ===")
     # visualizer.random_visualize(n=3)
-    
+
     # Class distribution analysis
     print("\n=== Class Distribution ===")
     # visualizer.visualize_class_distribution(max_samples=100)
-    
-
