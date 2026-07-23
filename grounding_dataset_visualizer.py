@@ -26,9 +26,7 @@ class DatasetVisualizer:
         """Initialize visualization colors after dataset setup."""
         # Initialize with dataset parameters
         super().__init__(*args, **kwargs)
-        self.colors = self._generate_colors(
-            100
-        )  # Generate colors for different classes
+        self.colors = self._generate_colors(100)  # Generate colors for different classes
 
     def _generate_colors(self, num_colors):
         """Generate distinct colors for visualization."""
@@ -98,9 +96,7 @@ class DatasetVisualizer:
             label_text += f" {confidence:.2f}"
 
         # Draw label background
-        (text_width, text_height), _ = cv2.getTextSize(
-            label_text, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 1
-        )
+        (text_width, text_height), _ = cv2.getTextSize(label_text, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 1)
         cv2.rectangle(
             img,
             (int(x1), int(y1) - text_height - 10),
@@ -250,17 +246,13 @@ class DatasetVisualizer:
                 image = sample.get("img", sample.get("image"))
                 bboxes = sample.get("bboxes", sample.get("bbox"))
                 labels = sample.get("cls", sample.get("labels", sample.get("classes")))
-                texts = sample.get(
-                    "texts", sample.get("text", [])
-                )  # Extract text labels
+                texts = sample.get("texts", sample.get("text", []))  # Extract text labels
             else:
                 # If sample is a tuple/list (image, target)
                 image, target = sample
                 if isinstance(target, dict):
                     bboxes = target.get("bboxes", target.get("bbox"))
-                    labels = target.get(
-                        "cls", target.get("labels", target.get("classes"))
-                    )
+                    labels = target.get("cls", target.get("labels", target.get("classes")))
                     texts = target.get("texts", target.get("text", []))
                 else:
                     bboxes, labels, texts = target, None, []
@@ -384,15 +376,11 @@ class DatasetVisualizer:
                 labels = None
 
                 if isinstance(sample, dict):
-                    labels = sample.get(
-                        "cls", sample.get("labels", sample.get("classes"))
-                    )
+                    labels = sample.get("cls", sample.get("labels", sample.get("classes")))
                 else:
                     _, target = sample
                     if isinstance(target, dict):
-                        labels = target.get(
-                            "cls", target.get("labels", target.get("classes"))
-                        )
+                        labels = target.get("cls", target.get("labels", target.get("classes")))
 
                 if labels is not None:
                     # Convert tensor to numpy if needed
@@ -402,9 +390,7 @@ class DatasetVisualizer:
                         labels = labels.flatten()
 
                     for label in labels:
-                        class_counts[str(int(label))] = (
-                            class_counts.get(str(int(label)), 0) + 1
-                        )
+                        class_counts[str(int(label))] = class_counts.get(str(int(label)), 0) + 1
 
             except Exception as e:
                 print(f"Error processing sample {i}: {e}")
@@ -425,9 +411,7 @@ class DatasetVisualizer:
             plt.show()
 
             print(f"Total classes found: {len(class_counts)}")
-            frequent_classes = sorted(
-                class_counts.items(), key=lambda x: x[1], reverse=True
-            )[:10]
+            frequent_classes = sorted(class_counts.items(), key=lambda x: x[1], reverse=True)[:10]
             print(f"Most frequent classes: {frequent_classes}")
         else:
             print("No class information found in dataset")
@@ -436,18 +420,12 @@ class DatasetVisualizer:
 class GroundingDatasetVisualizer(GroundingDataset, DatasetVisualizer):
     """Grounding dataset with visualization helper methods."""
 
-    pass
-
 
 if __name__ == "__main__":
     img_path = ("../datasets/mixed_grounding/gqa/images",)
-    json_file = (
-        "../datasets/mixed_grounding/annotations/final_mixed_train_no_coco_segm.json",
-    )
+    json_file = ("../datasets/mixed_grounding/annotations/final_mixed_train_no_coco_segm.json",)
 
-    visualizer = GroundingDatasetVisualizer(
-        json_file=json_file, img_path=img_path, augment=False
-    )
+    visualizer = GroundingDatasetVisualizer(json_file=json_file, img_path=img_path, augment=False)
 
     # Get dataset information
     print("=== Dataset Information ===")

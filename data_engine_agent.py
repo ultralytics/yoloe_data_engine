@@ -48,7 +48,6 @@ def to_serializable(obj):
 
 def _load_grounding_data(buffer_dir, im_dir, imid, anns, folder_name):
     """Worker invoked in subprocesses to build per-image grounding labels."""
-    global IMAGES_CACHE, IMNAME_ANNS_CACHE
     dst_dir = os.path.join(buffer_dir, folder_name)
     os.makedirs(dst_dir, exist_ok=True)
     dst_file = os.path.join(dst_dir, str(imid) + ".json")
@@ -70,14 +69,7 @@ def _load_grounding_data(buffer_dir, im_dir, imid, anns, folder_name):
     else:
         anns_for_img = []
     for ann in anns + anns_for_img:
-        if (
-            len(bboxes_xyxy) > 0
-            and YoloBox([int(h), int(w)])
-            .load_from_xyxy(bboxes_xyxy)
-            .iou(ann["bbox"])
-            .max()
-            > 0.98
-        ):
+        if len(bboxes_xyxy) > 0 and YoloBox([int(h), int(w)]).load_from_xyxy(bboxes_xyxy).iou(ann["bbox"]).max() > 0.98:
             continue
         if ann["iscrowd"]:
             continue
@@ -88,11 +80,7 @@ def _load_grounding_data(buffer_dir, im_dir, imid, anns, folder_name):
         if box[2] <= 0 or box[3] <= 0:
             continue
         caption = ann["caption"]
-        cat_name = (
-            " ".join([caption[t[0] : t[1]] for t in ann["tokens_positive"]])
-            .lower()
-            .strip()
-        )
+        cat_name = " ".join([caption[t[0] : t[1]] for t in ann["tokens_positive"]]).lower().strip()
         if not cat_name:
             continue
         if cat_name not in cat2id:
@@ -108,29 +96,18 @@ def _load_grounding_data(buffer_dir, im_dir, imid, anns, folder_name):
                     continue
                 elif len(ann["segmentation"]) > 1:
                     s = merge_multi_segment(ann["segmentation"])
-                    s = (
-                        (np.concatenate(s, axis=0) / np.array([w, h], dtype=np.float32))
-                        .reshape(-1)
-                        .tolist()
-                    )
+                    s = (np.concatenate(s, axis=0) / np.array([w, h], dtype=np.float32)).reshape(-1).tolist()
                 else:
                     s = [j for i in ann["segmentation"] for j in i]
                     s = (
-                        (
-                            np.array(s, dtype=np.float32).reshape(-1, 2)
-                            / np.array([w, h], dtype=np.float32)
-                        )
+                        (np.array(s, dtype=np.float32).reshape(-1, 2) / np.array([w, h], dtype=np.float32))
                         .reshape(-1)
                         .tolist()
                     )
                 s = [cls, *s]
                 segments.append(s)
         bboxes_xyxy.append(ann["bbox"])
-    lb = (
-        np.array(bboxes, dtype=np.float32)
-        if len(bboxes)
-        else np.zeros((0, 5), dtype=np.float32)
-    )
+    lb = np.array(bboxes, dtype=np.float32) if len(bboxes) else np.zeros((0, 5), dtype=np.float32)
     if segments:
         classes = np.array([x[0] for x in segments], dtype=np.float32)
         segments = [np.array(x[1:], dtype=np.float32).reshape(-1, 2) for x in segments]
@@ -204,9 +181,7 @@ def _batch_model_predict_single_process(self, buffer_dir, im_files, **kwargs):
     os.makedirs(dst_dir, exist_ok=True)
     conf = kwargs.get("conf", 0.5)
     iou = kwargs.get("iou", 0.4)
-    im_names_wo_ext = [
-        os.path.splitext(os.path.basename(im_file))[0] for im_file in im_files
-    ]
+    im_names_wo_ext = [os.path.splitext(os.path.basename(im_file))[0] for im_file in im_files]
     dst_files = [os.path.join(dst_dir, f"{name}.json") for name in im_names_wo_ext]
     indices = [i for i in range(len(im_files)) if not os.path.exists(dst_files[i])]
     if len(indices) == 0:
@@ -246,9 +221,7 @@ def _device_predict_worker(args):
     engine.set_classes(name_list=texts)
 
     for im_files in tqdm(batches, desc=f"Device {device} processing batches"):
-        _batch_model_predict_single_process(
-            engine, buffer_dir, im_files, **worker_kwargs
-        )
+        _batch_model_predict_single_process(engine, buffer_dir, im_files, **worker_kwargs)
     return True
 
 
@@ -286,10 +259,7 @@ def _merge_prediction_to_sample_label(buffer_dir, sample_json, model_predict_jso
     for model_inst in predict_sample.instances:
         # Defensive: skip invalid model instances
         if getattr(model_inst, "bbox", None) is None:
-            print(
-                "[merge][WARN] skipping model instance with empty bbox in "
-                f"'{sample_json}'"
-            )
+            print(f"[merge][WARN] skipping model instance with empty bbox in '{sample_json}'")
             continue
         try:
             model_bbox = YoloBox(ground_sample.shape).load_from_xyxy(model_inst.bbox)
@@ -329,9 +299,7 @@ def merge_prediction_worker(args):
     if idx < 5 or (idx >= 0 and idx % 5000 == 0):
         print(f"[worker] idx={idx} merging sample='{os.path.basename(sample_json)}'")
     try:
-        return _merge_prediction_to_sample_label(
-            buffer_dir, sample_json, model_predict_json
-        )
+        return _merge_prediction_to_sample_label(buffer_dir, sample_json, model_predict_json)
     except Exception as e:
         import traceback
 
@@ -360,14 +328,9 @@ class YoloBox:
                 self.img_h = float(arr[0])
                 self.img_w = float(arr[1])
             except Exception as e:
-                raise ValueError(
-                    f"Invalid image shape provided to YoloBox: {img_shape}"
-                ) from e
+                raise ValueError(f"Invalid image shape provided to YoloBox: {img_shape}") from e
         if self.img_h <= 0 or self.img_w <= 0:
-            raise ValueError(
-                "Image width/height must be positive, "
-                f"got img_h={self.img_h}, img_w={self.img_w}"
-            )
+            raise ValueError(f"Image width/height must be positive, got img_h={self.img_h}, img_w={self.img_w}")
         self.xyxy = None
         self.xywhn = None  # normalized xywh
 
@@ -375,18 +338,10 @@ class YoloBox:
         """Load normalized xywh boxes and compute xyxy boxes."""
         bboxes_xyxy = np.zeros_like(bboxes_xywhn)
         if bboxes_xywhn.shape[0] > 0:
-            bboxes_xyxy[:, 0] = (
-                bboxes_xywhn[:, 0] - bboxes_xywhn[:, 2] / 2
-            ) * self.img_w
-            bboxes_xyxy[:, 1] = (
-                bboxes_xywhn[:, 1] - bboxes_xywhn[:, 3] / 2
-            ) * self.img_h
-            bboxes_xyxy[:, 2] = (
-                bboxes_xywhn[:, 0] + bboxes_xywhn[:, 2] / 2
-            ) * self.img_w
-            bboxes_xyxy[:, 3] = (
-                bboxes_xywhn[:, 1] + bboxes_xywhn[:, 3] / 2
-            ) * self.img_h
+            bboxes_xyxy[:, 0] = (bboxes_xywhn[:, 0] - bboxes_xywhn[:, 2] / 2) * self.img_w
+            bboxes_xyxy[:, 1] = (bboxes_xywhn[:, 1] - bboxes_xywhn[:, 3] / 2) * self.img_h
+            bboxes_xyxy[:, 2] = (bboxes_xywhn[:, 0] + bboxes_xywhn[:, 2] / 2) * self.img_w
+            bboxes_xyxy[:, 3] = (bboxes_xywhn[:, 1] + bboxes_xywhn[:, 3] / 2) * self.img_h
         self.xyxy = bboxes_xyxy
         self.xywhn = bboxes_xywhn
         return self
@@ -423,10 +378,7 @@ class YoloBox:
                 # prefer last 4 entries (common in some formats)
                 arr = arr[:, -4:]
             if arr.ndim != 2 or arr.shape[1] != 4:
-                raise ValueError(
-                    f"Invalid bbox shape after conversion: {arr.shape}, "
-                    f"original={type(x)}"
-                )
+                raise ValueError(f"Invalid bbox shape after conversion: {arr.shape}, original={type(x)}")
             return arr
 
         try:
@@ -437,18 +389,10 @@ class YoloBox:
 
         bboxes_xywhn = np.zeros_like(bboxes_xyxy, dtype=np.float32)
         if bboxes_xyxy.shape[0] > 0:
-            bboxes_xywhn[:, 0] = (
-                (bboxes_xyxy[:, 0] + bboxes_xyxy[:, 2]) / 2.0
-            ) / float(self.img_w)
-            bboxes_xywhn[:, 1] = (
-                (bboxes_xyxy[:, 1] + bboxes_xyxy[:, 3]) / 2.0
-            ) / float(self.img_h)
-            bboxes_xywhn[:, 2] = (bboxes_xyxy[:, 2] - bboxes_xyxy[:, 0]) / float(
-                self.img_w
-            )
-            bboxes_xywhn[:, 3] = (bboxes_xyxy[:, 3] - bboxes_xyxy[:, 1]) / float(
-                self.img_h
-            )
+            bboxes_xywhn[:, 0] = ((bboxes_xyxy[:, 0] + bboxes_xyxy[:, 2]) / 2.0) / float(self.img_w)
+            bboxes_xywhn[:, 1] = ((bboxes_xyxy[:, 1] + bboxes_xyxy[:, 3]) / 2.0) / float(self.img_h)
+            bboxes_xywhn[:, 2] = (bboxes_xyxy[:, 2] - bboxes_xyxy[:, 0]) / float(self.img_w)
+            bboxes_xywhn[:, 3] = (bboxes_xyxy[:, 3] - bboxes_xyxy[:, 1]) / float(self.img_h)
         self.xyxy = bboxes_xyxy
         self.xywhn = bboxes_xywhn
         return self
@@ -545,9 +489,7 @@ class Sample:
     def load_from_grounding_label(self, grounding_data):
         """Load sample instances from a grounding label dictionary or JSON path."""
         if isinstance(grounding_data, str):
-            assert grounding_data.endswith(".json"), (
-                "If grounding_data is str, it should be a json file path."
-            )
+            assert grounding_data.endswith(".json"), "If grounding_data is str, it should be a json file path."
             import json
 
             with open(grounding_data) as f:
@@ -563,7 +505,7 @@ class Sample:
             elif isinstance(text, str):
                 self.texts.append(text)
             else:
-                raise ValueError("text should be str or list of str")
+                raise TypeError("text should be str or list of str")
         normalized = grounding_data.get("normalized")
         bbox_format = grounding_data.get("bbox_format")
         self.other_data["bbox_format"] = bbox_format
@@ -576,11 +518,7 @@ class Sample:
             grounding_data.get("segments", []),
         ):
             # Convert normalized xywh to xyxy for internal consistency
-            bbox_xyxy = (
-                YoloBox(self.shape)
-                .load_from_xywhn_normalized(np.array([box], dtype=np.float32))
-                .xyxy[0]
-            )
+            bbox_xyxy = YoloBox(self.shape).load_from_xywhn_normalized(np.array([box], dtype=np.float32)).xyxy[0]
             # Create instance with xyxy bbox
             inst = Instance(bbox=bbox_xyxy.tolist())
             # Attach segment only if well-formed (N,2)
@@ -621,9 +559,7 @@ class Sample:
     def load_from_yoloe_result(self, yoloe_result):
         """Load sample instances from a YOLOE result object or JSON path."""
         if isinstance(yoloe_result, str):
-            assert yoloe_result.endswith(".json"), (
-                "If yoloe_result is str, it should be a json file path."
-            )
+            assert yoloe_result.endswith(".json"), "If yoloe_result is str, it should be a json file path."
             import json
 
             with open(yoloe_result) as f:
@@ -686,10 +622,10 @@ class Sample:
 class DataEngineAgent:
     """Coordinate data-engine model loading and multiprocess processing."""
 
-    def __init__(
-        self, devices=["cuda:0"], buffer_dir="/root/ultra_louis_work/engine_buffer"
-    ):
+    def __init__(self, devices=None, buffer_dir="/root/ultra_louis_work/engine_buffer"):
         """Initialize the agent with devices and an output buffer directory."""
+        if devices is None:
+            devices = ["cuda:0"]
         self.buffer_dir = buffer_dir
         os.makedirs(self.buffer_dir, exist_ok=True)
         self.devices = devices
@@ -712,9 +648,7 @@ class DataEngineAgent:
             model.set_classes(name_list=texts)
         self.texts = texts
 
-    def multi_process_batch_model_predict(
-        self, im_dir, texts=None, conf=0.5, iou=0.4, batch_size=3, max_workers=None
-    ):
+    def multi_process_batch_model_predict(self, im_dir, texts=None, conf=0.5, iou=0.4, batch_size=3, max_workers=None):
         """Run batch model prediction across multiple device workers."""
         im_files = []
         for file_name in os.listdir(im_dir):
@@ -723,9 +657,7 @@ class DataEngineAgent:
 
         # im_files=im_files[:128]
         print(f"Total images to process: {len(im_files)}")
-        batches = [
-            im_files[i : i + batch_size] for i in range(0, len(im_files), batch_size)
-        ]
+        batches = [im_files[i : i + batch_size] for i in range(0, len(im_files), batch_size)]
         print(f"Total batches: {len(batches)}, batch size: {batch_size}")
         if not batches:
             return []
@@ -755,23 +687,15 @@ class DataEngineAgent:
 
         results = []
         ctx = mp.get_context("spawn")
-        with ProcessPoolExecutor(
-            max_workers=len(process_args), mp_context=ctx
-        ) as executor:
-            futures = [
-                executor.submit(_device_predict_worker, args) for args in process_args
-            ]
-            for future in tqdm(
-                as_completed(futures), total=len(futures), desc="Model predict ..."
-            ):
+        with ProcessPoolExecutor(max_workers=len(process_args), mp_context=ctx) as executor:
+            futures = [executor.submit(_device_predict_worker, args) for args in process_args]
+            for future in tqdm(as_completed(futures), total=len(futures), desc="Model predict ..."):
                 future.result()
         return results
 
         # print(f"Saved sample to {dst_file}")
 
-    def multi_process_load_grounding_data(
-        self, im_dir, json_file, merge_within_one_image, max_workers=8
-    ):
+    def multi_process_load_grounding_data(self, im_dir, json_file, merge_within_one_image, max_workers=8):
         """Load grounding data from COCO-style annotations with worker processes."""
         print("Start multi-process loading of grounding data...")
         self.im_dir = im_dir
@@ -803,18 +727,11 @@ class DataEngineAgent:
         worker_count = max_workers if max_workers is not None else (os.cpu_count() or 1)
 
         # Use an initializer so each worker receives heavy state only once.
-        with ProcessPoolExecutor(
-            max_workers=max_workers, initializer=init_worker, initargs=init_args
-        ) as executor:
-            tasks = [
-                (self.buffer_dir, self.im_dir, imid, imid_anns[imid], folder_name)
-                for imid in imids
-            ]
+        with ProcessPoolExecutor(max_workers=max_workers, initializer=init_worker, initargs=init_args) as executor:
+            tasks = [(self.buffer_dir, self.im_dir, imid, imid_anns[imid], folder_name) for imid in imids]
 
             # Chunksize controls how many tasks are sent to a worker at once.
-            chunk_size = max(
-                1, min(500, len(imids) // (worker_count * 4) if worker_count > 0 else 1)
-            )
+            chunk_size = max(1, min(500, len(imids) // (worker_count * 4) if worker_count > 0 else 1))
             print(f"Using {worker_count} workers and chunksize: {chunk_size}")
 
             list(
@@ -864,9 +781,7 @@ class DataEngineAgent:
         process_args = []
         for i in range(len(json_files)):
             # include index for debug prints inside workers
-            process_args.append(
-                (i, self.buffer_dir, json_files[i], predict_json_files[i])
-            )
+            process_args.append((i, self.buffer_dir, json_files[i], predict_json_files[i]))
 
         # Show a few samples for debugging
         preview_n = min(3, len(process_args))
@@ -878,23 +793,15 @@ class DataEngineAgent:
         ctx = mp.get_context("spawn")
         chunksize = max(
             1,
-            min(
-                500, len(process_args) // (worker_count * 4) if worker_count > 0 else 1
-            ),
+            min(500, len(process_args) // (worker_count * 4) if worker_count > 0 else 1),
         )
-        print(
-            f"[merge] Submitting {len(process_args)} tasks with chunksize={chunksize}"
-        )
+        print(f"[merge] Submitting {len(process_args)} tasks with chunksize={chunksize}")
 
         with ProcessPoolExecutor(max_workers=worker_count, mp_context=ctx) as executor:
-            iterable = executor.map(
-                merge_prediction_worker, process_args, chunksize=chunksize
-            )
+            iterable = executor.map(merge_prediction_worker, process_args, chunksize=chunksize)
             ok = 0
             total = 0
-            for result in tqdm(
-                iterable, total=len(process_args), desc="Merging predictions"
-            ):
+            for result in tqdm(iterable, total=len(process_args), desc="Merging predictions"):
                 total += 1
                 if result:
                     ok += 1
@@ -932,14 +839,10 @@ if __name__ == "__main__":
             devices=devices,
             buffer_dir="/root/ultra_louis_work/runs/flickr_engine_buffer",
         )
-        json_file = (
-            "/root/ultra_louis_work/datasets/flickr/annotations/"
-            "final_flickr_separateGT_train_segm.json"
-        )
+        json_file = "/root/ultra_louis_work/datasets/flickr/annotations/final_flickr_separateGT_train_segm.json"
         im_dir = "../datasets/flickr/full_images/"
         mobileclip_text_embed_pt = (
-            "/root/ultra_louis_work/datasets/mixed_grounding/gqa/"
-            "text_embeddings_mobileclip_blt.pt"
+            "/root/ultra_louis_work/datasets/mixed_grounding/gqa/text_embeddings_mobileclip_blt.pt"
         )
 
         import torch
@@ -957,14 +860,9 @@ if __name__ == "__main__":
             devices=devices,
             buffer_dir="/root/ultra_louis_work/runs/mixed_engine_buffer",
         )
-        json_file = (
-            "../datasets/mixed_grounding/annotations/"
-            "final_mixed_train_no_coco_segm.json"
-        )
+        json_file = "../datasets/mixed_grounding/annotations/final_mixed_train_no_coco_segm.json"
         im_dir = "../datasets/mixed_grounding/gqa/images"
-        mobileclip_text_embed_pt = (
-            "/root/ultra_louis_work/datasets/flickr/text_embeddings_mobileclip_blt.pt"
-        )
+        mobileclip_text_embed_pt = "/root/ultra_louis_work/datasets/flickr/text_embeddings_mobileclip_blt.pt"
 
         # import torch
         # txt_map= torch.load(mobileclip_text_embed_pt, map_location="cuda:0")

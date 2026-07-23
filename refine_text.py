@@ -1,5 +1,7 @@
 """Refine grounding text labels with YOLOE visual prompt embeddings."""
 
+from __future__ import annotations
+
 import argparse
 import json
 import os
@@ -61,9 +63,7 @@ class RefineGroundingDataset(GroundingDataset, DataEngine):
         }
         num_cls = len(set(prompts["cls"]))
         yoloe_model.model.model[-1].nc = num_cls
-        yoloe_model.model.model[-1].no = (
-            num_cls + yoloe_model.model.model[-1].reg_max * 4
-        )
+        yoloe_model.model.model[-1].no = num_cls + yoloe_model.model.model[-1].reg_max * 4
         yoloe_model.model.names = [f"object{i}" for i in range(num_cls)]
         yoloe_model.predictor.set_prompts(prompts.copy())
         yoloe_model.predictor.setup_model(model=yoloe_model.model)
@@ -121,9 +121,7 @@ class RefineGroundingDataset(GroundingDataset, DataEngine):
         if not hasattr(self, "model") or self.model is None:
             self.load_yoloe()
 
-        for img_id, anns in TQDM(
-            imid_anns.items(), desc=f"Reading annotations {self.json_file}"
-        ):
+        for img_id, anns in TQDM(imid_anns.items(), desc=f"Reading annotations {self.json_file}"):
             # if img_id > 16*10: break  # for testing
             img = images[f"{img_id:d}"]
             h, w, f = img["height"], img["width"], img["file_name"]
@@ -142,11 +140,7 @@ class RefineGroundingDataset(GroundingDataset, DataEngine):
             for ann in anns + anns_for_img:
                 if (
                     len(bboxes_xyxy) > 0
-                    and YoloBox([int(h), int(w)])
-                    .load_from_xyxy(bboxes_xyxy)
-                    .iou(ann["bbox"])
-                    .max()
-                    > 0.98
+                    and YoloBox([int(h), int(w)]).load_from_xyxy(bboxes_xyxy).iou(ann["bbox"]).max() > 0.98
                 ):
                     # print("skip duplicate box")
                     continue
@@ -160,11 +154,7 @@ class RefineGroundingDataset(GroundingDataset, DataEngine):
                     continue
 
                 caption = img["caption"]
-                cat_name = (
-                    " ".join([caption[t[0] : t[1]] for t in ann["tokens_positive"]])
-                    .lower()
-                    .strip()
-                )
+                cat_name = " ".join([caption[t[0] : t[1]] for t in ann["tokens_positive"]]).lower().strip()
                 if not cat_name:
                     continue
 
@@ -181,23 +171,11 @@ class RefineGroundingDataset(GroundingDataset, DataEngine):
                             continue
                         elif len(ann["segmentation"]) > 1:
                             s = merge_multi_segment(ann["segmentation"])
-                            s = (
-                                (
-                                    np.concatenate(s, axis=0)
-                                    / np.array([w, h], dtype=np.float32)
-                                )
-                                .reshape(-1)
-                                .tolist()
-                            )
+                            s = (np.concatenate(s, axis=0) / np.array([w, h], dtype=np.float32)).reshape(-1).tolist()
                         else:
-                            s = [
-                                j for i in ann["segmentation"] for j in i
-                            ]  # all segments concatenated
+                            s = [j for i in ann["segmentation"] for j in i]  # all segments concatenated
                             s = (
-                                (
-                                    np.array(s, dtype=np.float32).reshape(-1, 2)
-                                    / np.array([w, h], dtype=np.float32)
-                                )
+                                (np.array(s, dtype=np.float32).reshape(-1, 2) / np.array([w, h], dtype=np.float32))
                                 .reshape(-1)
                                 .tolist()
                             )
@@ -205,20 +183,12 @@ class RefineGroundingDataset(GroundingDataset, DataEngine):
                         segments.append(s)
                 bboxes_xyxy.append(ann["bbox"])  # add xyxy box for iou calculation
 
-            lb = (
-                np.array(bboxes, dtype=np.float32)
-                if len(bboxes)
-                else np.zeros((0, 5), dtype=np.float32)
-            )
+            lb = np.array(bboxes, dtype=np.float32) if len(bboxes) else np.zeros((0, 5), dtype=np.float32)
 
             if segments:
                 classes = np.array([x[0] for x in segments], dtype=np.float32)
-                segments = [
-                    np.array(x[1:], dtype=np.float32).reshape(-1, 2) for x in segments
-                ]  # (cls, xy1...)
-                lb = np.concatenate(
-                    (classes.reshape(-1, 1), segments2boxes(segments)), 1
-                )  # (cls, xywh)
+                segments = [np.array(x[1:], dtype=np.float32).reshape(-1, 2) for x in segments]  # (cls, xy1...)
+                lb = np.concatenate((classes.reshape(-1, 1), segments2boxes(segments)), 1)  # (cls, xywh)
             lb = np.array(lb, dtype=np.float32)
 
             label = {
@@ -232,8 +202,6 @@ class RefineGroundingDataset(GroundingDataset, DataEngine):
                 "texts": texts,
             }
 
-            #
-
             x["labels"].append(label)
 
         #######  append boxes
@@ -242,9 +210,7 @@ class RefineGroundingDataset(GroundingDataset, DataEngine):
 
         self.data_style = "grounding"
         for start in TQDM(range(0, len(x["labels"]), batch_size)):
-            batch_indices = list(
-                range(start, min(start + batch_size, len(x["labels"])))
-            )
+            batch_indices = list(range(start, min(start + batch_size, len(x["labels"]))))
             batch_texts = []
             for indice in batch_indices:
                 label_texts = x["labels"][indice].get("texts", [])
@@ -261,26 +227,18 @@ class RefineGroundingDataset(GroundingDataset, DataEngine):
             else:
                 self.set_classes(name_list=None)
 
-            results = self.yoloe_predict_batch(
-                [x["labels"][i] for i in batch_indices], conf=0.1, iou=0.4
-            )
-            assert len(results) == len(batch_indices), (
-                "Mismatch between results and batch_indices length"
-            )
+            results = self.yoloe_predict_batch([x["labels"][i] for i in batch_indices], conf=0.1, iou=0.4)
+            assert len(results) == len(batch_indices), "Mismatch between results and batch_indices length"
             for indice, res in zip(batch_indices, results):
                 iou = 0.1  # append new boxes when iou < 0.1
                 replace = False  # do not replace existing boxes
-                x["labels"][indice] = self._update_grounding_label(
-                    x["labels"][indice], res, iou=iou, replace=replace
-                )
+                x["labels"][indice] = self._update_grounding_label(x["labels"][indice], res, iou=iou, replace=replace)
 
         self.load_yoloe()  # reload to reset class number
 
         #####  refine the bbox texts
         imname_image = {im["file_name"]: im for im in annotations["images"]}
-        for indice, label in TQDM(
-            enumerate(x["labels"]), desc="Refining texts for grounding data"
-        ):
+        for indice, label in TQDM(enumerate(x["labels"]), desc="Refining texts for grounding data"):
             bboxes_xyxy = (
                 YoloBox((int(label["shape"][0]), int(label["shape"][1])))
                 .load_from_xywhn_normalized(label["bboxes"])
@@ -291,16 +249,12 @@ class RefineGroundingDataset(GroundingDataset, DataEngine):
             for text_list in label["texts"]:
                 texts.extend(text_list)
             print("original texts for image ", ":", texts)
-            caption = imname_image[Path(label["im_file"]).name]["caption"].replace(
-                ".", ""
-            )
+            caption = imname_image[Path(label["im_file"]).name]["caption"].replace(".", "")
             caption_texts = caption.split()
             texts.extend(caption_texts)
             print("caption_texts for image ", ":", caption_texts)
             texts = list(set(texts))
-            matched_texts = self.vpe_text(
-                source=label["im_file"], visual_prompts=visual, texts=texts
-            )
+            matched_texts = self.vpe_text(source=label["im_file"], visual_prompts=visual, texts=texts)
             matches_texts_set = list(set(matched_texts))
             label["texts"] = [[text] for text in matches_texts_set]
             # take cls as the index in the matched texts set

@@ -15,18 +15,10 @@ if __name__ == "__main__":
 
     de = DataEngine()
     cache_path = (
-        "/root/ultra_louis_work/datasets/mixed_grounding/annotations/"
-        "final_mixed_train_no_coco_segm.updated.cache"
+        "/root/ultra_louis_work/datasets/mixed_grounding/annotations/final_mixed_train_no_coco_segm.updated.cache"
     )
-    text_embed_pt = (
-        "/root/ultra_louis_work/datasets/mixed_grounding/gqa/"
-        "text_embeddings_mobileclip_blt.pt"
-    )
-    de.load_cached_label(
-        cache_path=cache_path, data_style="grounding", text_embed_pt=text_embed_pt
-    )
+    text_embed_pt = "/root/ultra_louis_work/datasets/mixed_grounding/gqa/text_embeddings_mobileclip_blt.pt"
+    de.load_cached_label(cache_path=cache_path, data_style="grounding", text_embed_pt=text_embed_pt)
     de.print_data_info()
 
-    de.visual_and_save2(
-        filename="353913.jpg", save_path="./visualized_grounding_example_v2.jpg"
-    )
+    de.visual_and_save2(filename="353913.jpg", save_path="./visualized_grounding_example_v2.jpg")

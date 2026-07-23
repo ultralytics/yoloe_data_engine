@@ -13,12 +13,11 @@ import ultralytics
 from PIL import Image
 from ultralytics.engine.results import Results
 
+from data_engine_agent import Instance, Sample
+
 workspace = os.path.dirname(os.path.dirname(os.path.abspath(ultralytics.__file__)))
 os.chdir(workspace)
 print("set workspace:", workspace)
-
-
-from data_engine_agent import Instance, Sample  # noqa: E402  pylint: disable=C0413
 
 
 def _ensure_sequence(value: Any) -> list[Any]:
@@ -57,11 +56,7 @@ def load_from_json(json_path: Path | str) -> Sample:
         if texts:
             if confs and len(texts) != len(confs):
                 raise ValueError("Text and confidence list must have the same length")
-            confidences = (
-                [float(c) if c is not None else 0.0 for c in confs]
-                if confs
-                else [0.0] * len(texts)
-            )
+            confidences = [float(c) if c is not None else 0.0 for c in confs] if confs else [0.0] * len(texts)
             inst.set_text(texts, confidences)
             for text in texts:
                 if text not in sample.texts:
@@ -107,16 +102,14 @@ def _resolve_image_path(sample: Sample, image_root: Path | str | None = None) ->
     raise FileNotFoundError(f"Unable to locate image file for sample: {sample.im_file}")
 
 
-def sample_to_results(
-    sample: Sample, image_root: Path | str | None = None
-) -> list[Results]:
+def sample_to_results(sample: Sample, image_root: Path | str | None = None) -> list[Results]:
     """Convert a `Sample` into a single Ultralytics `Results` object list."""
     img_path = _resolve_image_path(sample, image_root=image_root)
     orig_img = np.array(Image.open(img_path).convert("RGB"))
 
     text_instances = {}
     for inst in sample.instances:
-        if inst.text[0] not in text_instances.keys():
+        if inst.text[0] not in text_instances:
             text_instances[inst.text[0]] = []
         text_instances[inst.text[0]].append(inst)
 
@@ -169,9 +162,7 @@ def sample_to_results(
     return text_result
 
 
-def visualize_sample(
-    sample: Sample, dst_vis_img: Path | str, image_root: Path | str | None = None
-) -> Path:
+def visualize_sample(sample: Sample, dst_vis_img: Path | str, image_root: Path | str | None = None) -> Path:
     """Render sample predictions to an image and save it to ``dst_vis_img``."""
     text_result = sample_to_results(sample, image_root=image_root)
     dst_vis_path = Path(dst_vis_img)
@@ -190,9 +181,7 @@ def visualize_sample(
 
 
 if __name__ == "__main__":
-    json_path = Path(
-        "/root/ultra_louis_work/runs/mixed_engine_buffer/model_predict/353913.json"
-    )
+    json_path = Path("/root/ultra_louis_work/runs/mixed_engine_buffer/model_predict/353913.json")
     sample = load_from_json(json_path)
     print(f"Loaded {len(sample.instances)} instances from {sample.im_file}")
     output_path = Path("../visual_json/visual_img.jpg")

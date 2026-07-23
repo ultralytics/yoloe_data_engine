@@ -45,18 +45,10 @@ class YoloBox:
         # xywhn: [N,4]  x_center,y_center,w,h (normalized)
         bboxes_xyxy = np.zeros_like(bboxes_xywhn)
         if bboxes_xywhn.shape[0] > 0:
-            bboxes_xyxy[:, 0] = (
-                bboxes_xywhn[:, 0] - bboxes_xywhn[:, 2] / 2
-            ) * self.img_w
-            bboxes_xyxy[:, 1] = (
-                bboxes_xywhn[:, 1] - bboxes_xywhn[:, 3] / 2
-            ) * self.img_h
-            bboxes_xyxy[:, 2] = (
-                bboxes_xywhn[:, 0] + bboxes_xywhn[:, 2] / 2
-            ) * self.img_w
-            bboxes_xyxy[:, 3] = (
-                bboxes_xywhn[:, 1] + bboxes_xywhn[:, 3] / 2
-            ) * self.img_h
+            bboxes_xyxy[:, 0] = (bboxes_xywhn[:, 0] - bboxes_xywhn[:, 2] / 2) * self.img_w
+            bboxes_xyxy[:, 1] = (bboxes_xywhn[:, 1] - bboxes_xywhn[:, 3] / 2) * self.img_h
+            bboxes_xyxy[:, 2] = (bboxes_xywhn[:, 0] + bboxes_xywhn[:, 2] / 2) * self.img_w
+            bboxes_xyxy[:, 3] = (bboxes_xywhn[:, 1] + bboxes_xywhn[:, 3] / 2) * self.img_h
 
         self.xyxy = bboxes_xyxy
 
@@ -74,12 +66,8 @@ class YoloBox:
         # xyxy: [N,4]  x0,y0,x1,y1
         bboxes_xywhn = np.zeros_like(bboxes_xyxy)
         if bboxes_xyxy.shape[0] > 0:
-            bboxes_xywhn[:, 0] = (
-                (bboxes_xyxy[:, 0] + bboxes_xyxy[:, 2]) / 2
-            ) / self.img_w
-            bboxes_xywhn[:, 1] = (
-                (bboxes_xyxy[:, 1] + bboxes_xyxy[:, 3]) / 2
-            ) / self.img_h
+            bboxes_xywhn[:, 0] = ((bboxes_xyxy[:, 0] + bboxes_xyxy[:, 2]) / 2) / self.img_w
+            bboxes_xywhn[:, 1] = ((bboxes_xyxy[:, 1] + bboxes_xyxy[:, 3]) / 2) / self.img_h
             bboxes_xywhn[:, 2] = (bboxes_xyxy[:, 2] - bboxes_xyxy[:, 0]) / self.img_w
             bboxes_xywhn[:, 3] = (bboxes_xyxy[:, 3] - bboxes_xyxy[:, 1]) / self.img_h
 
@@ -133,28 +121,20 @@ class DataEngine:
     def set_classes(self, yaml_config=None, name_list=None, text_embed_pt=None):
         """Set model class names from a YAML file, list, or text embedding."""
         # only one of yaml_config and name_list should be provided
-        assert (yaml_config is None) or (name_list is None), (
-            "Only one of yaml_config and name_list should be provided"
-        )
+        assert (yaml_config is None) or (name_list is None), "Only one of yaml_config and name_list should be provided"
         if yaml_config is not None:
-            assert name_list is None, (
-                "If yaml_config is provided, name_list should be None"
-            )
+            assert name_list is None, "If yaml_config is provided, name_list should be None"
             name_list = get_names_from_yaml_config(yaml_config)
             name_list = list(name_list.values())
             print("Load names from yaml:", yaml_config)
 
         if text_embed_pt is not None:
-            assert os.path.exists(text_embed_pt), (
-                f"Text embed pt file not found: {text_embed_pt}"
-            )
+            assert os.path.exists(text_embed_pt), f"Text embed pt file not found: {text_embed_pt}"
             txt_map = torch.load(text_embed_pt, map_location=self.device)
             name_list = list(txt_map.keys())
             print("Load text embed from:", text_embed_pt)
 
-        assert name_list is None or isinstance(name_list, list), (
-            "name_list should be a list of strings or None"
-        )
+        assert name_list is None or isinstance(name_list, list), "name_list should be a list of strings or None"
 
         if name_list is not None:
             print(f"Set {len(name_list)} classes")
@@ -187,11 +167,7 @@ class DataEngine:
         if not img_files:
             return []
 
-        return list(
-            self.model.predict(
-                img_files, conf=conf, iou=iou, batch=len(img_files), stream=True
-            )
-        )
+        return list(self.model.predict(img_files, conf=conf, iou=iou, batch=len(img_files), stream=True))
 
     def __len__(self):
         """Return the number of loaded labels."""
@@ -201,9 +177,7 @@ class DataEngine:
         """Set the base image folder used to resolve relative image paths."""
         self.img_source = img_source
 
-    def load_cached_label(
-        self, cache_path, data_style="grounding", yaml_config=None, text_embed_pt=None
-    ):
+    def load_cached_label(self, cache_path, data_style="grounding", yaml_config=None, text_embed_pt=None):
         """Load cached labels and metadata for detection or grounding data."""
         self.cache_path = cache_path
 
@@ -216,9 +190,7 @@ class DataEngine:
         self.data_style = data_style
 
         if data_style == "detection":
-            assert yaml_config is not None, (
-                "yaml_config must be provided for detection data_style"
-            )
+            assert yaml_config is not None, "yaml_config must be provided for detection data_style"
             if not os.path.exists(yaml_config):
                 raise FileNotFoundError(f"YAML config file not found: {yaml_config}")
             self.yaml_config = yaml_config
@@ -231,19 +203,13 @@ class DataEngine:
                 self.names = data_dict["names"]
 
         elif data_style == "grounding":
-            assert text_embed_pt is not None, (
-                "text_embed_pt must be provided for grounding data_style"
-            )
+            assert text_embed_pt is not None, "text_embed_pt must be provided for grounding data_style"
             self.text_embed_pt = text_embed_pt
             if not os.path.exists(text_embed_pt):
-                raise FileNotFoundError(
-                    f"Text embed pt file not found: {text_embed_pt}"
-                )
+                raise FileNotFoundError(f"Text embed pt file not found: {text_embed_pt}")
             else:
                 print("Load text embed from:", text_embed_pt)
-            txt_map = torch.load(
-                text_embed_pt, map_location=self.device, weights_only=False
-            )
+            txt_map = torch.load(text_embed_pt, map_location=self.device, weights_only=False)
             self.names = list(txt_map.keys())
 
     def print_data_info(self):
@@ -254,11 +220,7 @@ class DataEngine:
         - Total number of boxes (for detection and grounding).
         """
         print(f"Data style: {self.data_style}")
-        print(
-            "Keys: {}".format(
-                self.labels[0].keys() if len(self.labels) > 0 else "No labels"
-            )
-        )
+        print("Keys: {}".format(self.labels[0].keys() if len(self.labels) > 0 else "No labels"))
         print(f"Total number of labels: {len(self.labels)}")
         if self.data_style in ["detection", "grounding"]:
             total_boxes = sum(len(label.get("bboxes", [])) for label in self.labels)
@@ -304,40 +266,28 @@ class DataEngine:
             else:
                 print(f"  Value: {val}")
 
-    def detection_predict_and_update_labels(
-        self, indice, iou=0.3, replace=True, conf=0.1
-    ):
+    def detection_predict_and_update_labels(self, indice, iou=0.3, replace=True, conf=0.1):
         """Predict and merge detection boxes for one label."""
         result = self.yoloe_predict(indice=indice, conf=conf)
         if not result:
             return
         self._update_detection_label(indice, result[0], iou=iou, replace=replace)
 
-    def detection_predict_and_update_labels_batch(
-        self, indices, iou=0.3, replace=False, conf=0.1
-    ):
+    def detection_predict_and_update_labels_batch(self, indices, iou=0.3, replace=False, conf=0.1):
         """Predict and merge detection boxes for a batch of labels."""
         results = self.yoloe_predict_batch([self.labels[i] for i in indices], conf=conf)
-        assert len(results) == len(indices), (
-            "Mismatch between results and indices length"
-        )
+        assert len(results) == len(indices), "Mismatch between results and indices length"
         for indice, res in zip(indices, results):
             self._update_detection_label(indice, res, iou=iou, replace=replace)
 
     def _update_detection_label(self, indice, result_obj, iou=0.3, replace=True):
-        assert self.data_style == "detection", (
-            "_update_detection_label requires detection data_style"
-        )
+        assert self.data_style == "detection", "_update_detection_label requires detection data_style"
         boxes = result_obj.boxes
         bboxes_xyxy = boxes.xyxy.cpu().numpy()
-        yolo_box = YoloBox(img_shape=result_obj.orig_img.shape[:2]).load_from_xyxy(
-            bboxes_xyxy
-        )
+        yolo_box = YoloBox(img_shape=result_obj.orig_img.shape[:2]).load_from_xyxy(bboxes_xyxy)
         bboxes_xywhn = yolo_box.xywhn
         cls = boxes.cls.cpu().numpy()
-        assert bboxes_xywhn.shape[0] == cls.shape[0], (
-            "Mismatch between number of boxes and classes"
-        )
+        assert bboxes_xywhn.shape[0] == cls.shape[0], "Mismatch between number of boxes and classes"
         if replace:
             self.labels[indice]["bboxes"] = bboxes_xywhn
             self.labels[indice]["cls"] = cls
@@ -368,47 +318,32 @@ class DataEngine:
                 box2_area = (box2[2] - box2[0]) * (box2[3] - box2[1])
                 union_area = box1_area + box2_area - inter_area
                 current_iou = inter_area / union_area if union_area > 0 else 0
-                if current_iou > max_iou:
-                    max_iou = current_iou
+                max_iou = max(max_iou, current_iou)
             if max_iou < iou:
                 keep_indices.append(i)
         print(f"Append {len(keep_indices)} new boxes out of {bboxes_xywhn.shape[0]}")
         for i in keep_indices:
             bbox = bboxes_xywhn[i]
             c = cls[i]
-            self.labels[indice]["bboxes"] = np.vstack(
-                [self.labels[indice]["bboxes"], bbox]
-            )
+            self.labels[indice]["bboxes"] = np.vstack([self.labels[indice]["bboxes"], bbox])
             self.labels[indice]["cls"] = np.vstack([self.labels[indice]["cls"], c])
 
-    def grounding_predict_and_update_labels_batch(
-        self, indices, iou=0.05, replace=False, conf=0.1
-    ):
+    def grounding_predict_and_update_labels_batch(self, indices, iou=0.05, replace=False, conf=0.1):
         """Predict and merge grounding boxes for a batch of labels."""
         results = self.yoloe_predict_batch(indices, conf=conf)
-        assert len(results) == len(indices), (
-            "Mismatch between results and indices length"
-        )
+        assert len(results) == len(indices), "Mismatch between results and indices length"
         for indice, res in zip(indices, results):
-            self.labels[indice] = self._update_grounding_label(
-                self.labels[indice], res, iou=iou, replace=replace
-            )
+            self.labels[indice] = self._update_grounding_label(self.labels[indice], res, iou=iou, replace=replace)
 
     def _update_grounding_label(self, label, result_obj, iou=0.1, replace=True):
-        assert self.data_style == "grounding", (
-            "_update_grounding_label requires grounding data_style"
-        )
+        assert self.data_style == "grounding", "_update_grounding_label requires grounding data_style"
         boxes = result_obj.boxes
         bboxes_xyxy = boxes.xyxy.cpu().numpy()
-        yolo_box = YoloBox(img_shape=result_obj.orig_img.shape[:2]).load_from_xyxy(
-            bboxes_xyxy
-        )
+        yolo_box = YoloBox(img_shape=result_obj.orig_img.shape[:2]).load_from_xyxy(bboxes_xyxy)
         bboxes_xywhn = yolo_box.xywhn
         cls = boxes.cls.cpu().numpy()
 
-        assert bboxes_xywhn.shape[0] == cls.shape[0], (
-            "Mismatch between number of boxes and classes"
-        )
+        assert bboxes_xywhn.shape[0] == cls.shape[0], "Mismatch between number of boxes and classes"
 
         if replace:
             label["bboxes"] = bboxes_xywhn
@@ -440,16 +375,13 @@ class DataEngine:
                 box2_area = (box2[2] - box2[0]) * (box2[3] - box2[1])
                 union_area = box1_area + box2_area - inter_area
                 current_iou = inter_area / union_area if union_area > 0 else 0
-                if current_iou > max_iou:
-                    max_iou = current_iou
+                max_iou = max(max_iou, current_iou)
             if max_iou < iou:
                 keep_indices.append(i)
 
         # get  current texts
         current_texts = label["texts"]
-        current_texts = [
-            text[0] for text in current_texts
-        ]  # remote the list structure inside
+        current_texts = [text[0] for text in current_texts]  # remote the list structure inside
 
         # Get boxes to append from result_obj with class ids and text labels.
         append_bboxes, append_cls, append_text = [], [], []
@@ -467,7 +399,7 @@ class DataEngine:
         # update the append_cls to match the updated texts
         updated_append_cls = []
         for text in append_text:
-            updated_cls = current_texts.index(text)  #
+            updated_cls = current_texts.index(text)
             updated_append_cls.append(updated_cls)
         append_cls = updated_append_cls
 
@@ -482,18 +414,14 @@ class DataEngine:
             label["bboxes"] = np.vstack([label["bboxes"], bbox])
             label["cls"] = np.vstack([label["cls"], c])
         # print how many boxes are appended
-        print(
-            f"Append {append_bboxes.shape[0]} new boxes out of {bboxes_xywhn.shape[0]}"
-        )
+        print(f"Append {append_bboxes.shape[0]} new boxes out of {bboxes_xywhn.shape[0]}")
         return label
 
     def label_append_instance(self, indice, bboxes, cls, texts=None):
         """Validate instance data before appending it to one label."""
         assert len(bboxes) == len(cls), "Length of bboxes and cls must be the same"
 
-    def visual_and_save2(
-        self, indice=None, filename=None, save_path="./visualize2.jpg"
-    ):
+    def visual_and_save2(self, indice=None, filename=None, save_path="./visualize2.jpg"):
         """Visualizes a label using ultralytics.engine.results.Results and saves it."""
         assert self.data_style in ["grounding", "detection"]
         print("Visualizing index:", indice)
@@ -525,9 +453,7 @@ class DataEngine:
         bboxes_xywhn = label["bboxes"]
         cls = label["cls"]
         if self.data_style == "detection":
-            assert self.yaml_config is not None, (
-                "yaml_config must be provided for detection data_style"
-            )
+            assert self.yaml_config is not None, "yaml_config must be provided for detection data_style"
             names = self.names
 
         elif self.data_style == "grounding":
@@ -541,9 +467,7 @@ class DataEngine:
         else:
             raise TypeError(f"Unsupported type for names: {type(names)}")
 
-        yolo_box = YoloBox(img_shape=(img_h, img_w)).load_from_xywhn_normalized(
-            bboxes_xywhn
-        )
+        yolo_box = YoloBox(img_shape=(img_h, img_w)).load_from_xywhn_normalized(bboxes_xywhn)
         bboxes_xyxy = yolo_box.xyxy.astype(np.float32)
 
         print("Number of boxes to visualize:", bboxes_xywhn.shape[0])
@@ -567,10 +491,7 @@ class DataEngine:
             cls_array = cls_array.astype(np.float32)
 
         if cls_array.shape[0] != num_boxes:
-            raise ValueError(
-                f"Mismatch between boxes ({num_boxes}) and class labels "
-                f"({cls_array.shape[0]})"
-            )
+            raise ValueError(f"Mismatch between boxes ({num_boxes}) and class labels ({cls_array.shape[0]})")
 
         conf = np.ones((num_boxes, 1), dtype=np.float32)
         plot_cls = cls_array.reshape(num_boxes, 1)
@@ -584,18 +505,13 @@ class DataEngine:
         print("Boxes data shape:", boxes_tensor.shape)
 
         # Create Results object
-        result = Results(
-            orig_img=np.array(orig_img), path=im_file, names=names, boxes=boxes_tensor
-        )
+        result = Results(orig_img=np.array(orig_img), path=im_file, names=names, boxes=boxes_tensor)
         # print each bbox witth cls and name from the result object
         for i in range(result.boxes.shape[0]):
             box = result.boxes[i]
             cls_id = int(box.cls.item())
             cls_name = result.names.get(cls_id, "unknown")
-            print(
-                f"Box {i}: Class ID = {cls_id}, Class Name = {cls_name}, "
-                f"Box Coordinates = {box.xyxy.tolist()}"
-            )
+            print(f"Box {i}: Class ID = {cls_id}, Class Name = {cls_name}, Box Coordinates = {box.xyxy.tolist()}")
 
         print(
             "Number of boxes in Results object:",
@@ -614,24 +530,20 @@ class DataEngine:
 
 
 if __name__ == "__main__":
-    DATA_NAME = "flickr"  #
+    DATA_NAME = "flickr"
 
     if DATA_NAME == "Objects365v1":
         de = DataEngine(device="cuda")
         yaml_config = "/root/ultra_louis_work/datasets/Objects365v1.yaml"
         cache_path = "/root/ultra_louis_work/datasets/Objects365v1/labels/train.cache"
-        de.load_cached_label(
-            cache_path=cache_path, data_style="detection", yaml_config=yaml_config
-        )
+        de.load_cached_label(cache_path=cache_path, data_style="detection", yaml_config=yaml_config)
         de.load_yoloe()
         de.set_classes(yaml_config=yaml_config)  # set classes for the dataset
 
         batch_size = 64
         for start in tqdm(range(0, len(de), batch_size)):
             batch_indices = list(range(start, min(start + batch_size, len(de))))
-            de.detection_predict_and_update_labels_batch(
-                batch_indices, iou=0.1, conf=0.1
-            )
+            de.detection_predict_and_update_labels_batch(batch_indices, iou=0.1, conf=0.1)
         de.save_cached_label(save_path=cache_path.replace(".cache", "_updated.cache"))
 
     elif DATA_NAME == "mixed_grounding":
@@ -639,16 +551,10 @@ if __name__ == "__main__":
         device = "cuda:1"
         de = DataEngine(device=device)
         cache_path = (
-            "/root/ultra_louis_work/datasets/mixed_grounding/annotations/"
-            "final_mixed_train_no_coco_segm.merged.cache"
+            "/root/ultra_louis_work/datasets/mixed_grounding/annotations/final_mixed_train_no_coco_segm.merged.cache"
         )
-        text_embed_pt = (
-            "/root/ultra_louis_work/datasets/mixed_grounding/gqa/"
-            "text_embeddings_mobileclip_blt.pt"
-        )
-        de.load_cached_label(
-            cache_path=cache_path, data_style="grounding", text_embed_pt=text_embed_pt
-        )
+        text_embed_pt = "/root/ultra_louis_work/datasets/mixed_grounding/gqa/text_embeddings_mobileclip_blt.pt"
+        de.load_cached_label(cache_path=cache_path, data_style="grounding", text_embed_pt=text_embed_pt)
         de.load_yoloe()
 
         batch_size = 32
@@ -672,9 +578,7 @@ if __name__ == "__main__":
 
             # debug_indice = batch_indices[10]
             try:
-                de.grounding_predict_and_update_labels_batch(
-                    batch_indices, iou=0.1, conf=0.1
-                )
+                de.grounding_predict_and_update_labels_batch(batch_indices, iou=0.1, conf=0.1)
             except Exception as e:
                 print(f"Error processing batch starting at index {start}: {e}")
 
@@ -685,15 +589,10 @@ if __name__ == "__main__":
         device = "cuda:2"
         de = DataEngine(device=device)
         cache_path = (
-            "/root/ultra_louis_work/datasets/flickr/annotations/"
-            "final_flickr_separateGT_train_segm.merged.cache"
+            "/root/ultra_louis_work/datasets/flickr/annotations/final_flickr_separateGT_train_segm.merged.cache"
         )
-        text_embed_pt = (
-            "/root/ultra_louis_work/datasets/flickr/text_embeddings_mobileclip_blt.pt"
-        )
-        de.load_cached_label(
-            cache_path=cache_path, data_style="grounding", text_embed_pt=text_embed_pt
-        )
+        text_embed_pt = "/root/ultra_louis_work/datasets/flickr/text_embeddings_mobileclip_blt.pt"
+        de.load_cached_label(cache_path=cache_path, data_style="grounding", text_embed_pt=text_embed_pt)
         de.load_yoloe()
 
         batch_size = 128
@@ -716,8 +615,6 @@ if __name__ == "__main__":
                 de.set_classes(name_list=None)
 
             # debug_indice = batch_indices[10]
-            de.grounding_predict_and_update_labels_batch(
-                batch_indices, iou=0.1, conf=0.1
-            )
+            de.grounding_predict_and_update_labels_batch(batch_indices, iou=0.1, conf=0.1)
 
         de.save_cached_label(save_path=cache_path.replace(".cache", ".updated.cache"))
