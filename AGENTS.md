@@ -31,8 +31,11 @@ After opening a PR:
 ## Commands
 
 ```bash
-bash do_flickr.sh                   # Flickr refinement + visualization flow
-bash do_mixed.sh                    # mixed-grounding refinement flow
+# The do_*.sh scripts call `python3 yoloe_data_engine/<script>.py`, so run them from the checkout's PARENT directory
+bash yoloe_data_engine/do_flickr.sh  # Flickr refinement + visualization flow
+bash yoloe_data_engine/do_mixed.sh   # mixed-grounding refinement flow
+
+# Individual scripts run from the repo root
 python3 refine_text.py              # refine grounding text prompts, write updated cache
 python3 data_visual_flickr.py       # render generated labels/predictions
 ruff format . && ruff check --fix . # formatting is applied on PRs by Ultralytics Actions, not a repo config
