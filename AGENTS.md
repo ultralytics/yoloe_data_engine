@@ -32,8 +32,8 @@ After opening a PR:
 
 ```bash
 # The do_*.sh scripts call `python3 yoloe_data_engine/<script>.py`, so run them from the checkout's PARENT directory
-bash yoloe_data_engine/do_flickr.sh  # Flickr refinement + visualization flow
-bash yoloe_data_engine/do_mixed.sh   # mixed-grounding refinement flow
+bash yoloe_data_engine/do_flickr.sh # Flickr refinement + visualization flow
+bash yoloe_data_engine/do_mixed.sh  # mixed-grounding refinement flow
 
 # Individual scripts run from the repo root
 python3 refine_text.py              # refine grounding text prompts, write updated cache
