@@ -1,3 +1,4 @@
+# Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
 """Visualize mixed grounding labels from cached data."""
 
 import os

@@ -1,3 +1,4 @@
+# Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
 """Remove mask and segment data from generated dataset caches."""
 
 from data_engine import DataEngine

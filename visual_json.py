@@ -1,3 +1,4 @@
+# Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
 """Convert data-engine prediction JSON files into visualization images."""
 
 from __future__ import annotations

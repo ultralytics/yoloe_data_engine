@@ -1,3 +1,4 @@
+# Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
 """Compare original and updated Flickr grounding caches visually."""
 
 import os

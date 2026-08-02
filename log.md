@@ -1,8 +1,4 @@
-
-
-
-
-# flickr 
+# flickr
 
 ```
 Load text embed from: /root/ultra_louis_work/datasets/flickr/text_embeddings_mobileclip_blt.pt
@@ -18,10 +14,9 @@ Total number of boxes: 638214
 
 # Object365
 
-
 ```
 
-(clipenv) root@autodl-container-45e441a24a-850d01e8:~/ultra_louis_work/data_engine# python data_visual_object365.py 
+(clipenv) root@autodl-container-45e441a24a-850d01e8:~/ultra_louis_work/data_engine# python data_visual_object365.py
 set workspace: /root/ultra_louis_work/ultralytics
 set workspace: /root/ultra_louis_work/ultralytics
 608606
@@ -36,8 +31,7 @@ Total number of boxes: 15518179
 
 # mixed
 
-
-(clipenv) root@autodl-container-45e441a24a-850d01e8:~/ultra_louis_work/data_engine# python data_visual_mixed.py 
+(clipenv) root@autodl-container-45e441a24a-850d01e8:~/ultra_louis_work/data_engine# python data_visual_mixed.py
 set workspace: /root/ultra_louis_work/ultralytics
 set workspace: /root/ultra_louis_work/ultralytics
 46380

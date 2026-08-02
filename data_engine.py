@@ -1,3 +1,4 @@
+# Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
 """Utilities for loading, updating, and visualizing YOLOE data caches."""
 
 import os
@@ -506,7 +507,7 @@ class DataEngine:
 
         # Create Results object
         result = Results(orig_img=np.array(orig_img), path=im_file, names=names, boxes=boxes_tensor)
-        # print each bbox witth cls and name from the result object
+        # print each bbox with cls and name from the result object
         for i in range(result.boxes.shape[0]):
             box = result.boxes[i]
             cls_id = int(box.cls.item())

@@ -1,3 +1,4 @@
+# Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
 """Refine grounding text labels with YOLOE visual prompt embeddings."""
 
 from __future__ import annotations
@@ -40,9 +41,9 @@ class RefineGroundingDataset(GroundingDataset, DataEngine):
             source: image source
             visual_prompts: dict, containing "bboxes" and "cls" lists
             texts: list of str, the texts to be matched
+
         Returns:
             matched texts for each box: tensor, (N,).
-
         """
         yoloe_model = self.model
         predictor = yolo.yoloe.YOLOEVPDetectPredictor
@@ -88,7 +89,6 @@ class RefineGroundingDataset(GroundingDataset, DataEngine):
 
         Returns:
             (dict[str, Any]): Cached labels and related information.
-
         """
         x = {"labels": []}
         LOGGER.info("Loading annotation file...")

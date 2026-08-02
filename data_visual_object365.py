@@ -1,3 +1,4 @@
+# Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
 """Visualize Object365 detection labels from cached data."""
 
 import os

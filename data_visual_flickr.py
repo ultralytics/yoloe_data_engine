@@ -1,3 +1,4 @@
+# Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
 """Visualize Flickr grounding labels from cached data."""
 
 import os

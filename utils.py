@@ -1,3 +1,4 @@
+# Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
 """Small dataset counting utilities."""
 
 from pathlib import Path

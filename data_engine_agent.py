@@ -1,3 +1,4 @@
+# Ultralytics 🚀 AGPL-3.0 License - https://ultralytics.com/license
 """Multiprocess helpers for generating and merging YOLOE data-engine labels."""
 
 from __future__ import annotations
@@ -173,7 +174,6 @@ def _batch_model_predict_single_process(self, buffer_dir, im_files, **kwargs):
         buffer_dir: str, buffer directory to save results
         im_files: list of str, image file paths
         kwargs: other keyword arguments for model.predict.
-
     """
     assert isinstance(self, DataEngine)
     engine = self
@@ -231,16 +231,14 @@ def _device_predict_worker(args):
 def _merge_prediction_to_sample_label(buffer_dir, sample_json, model_predict_json):
     """Merge model prediction results into one grounding sample label.
 
-    step 1: first check the filename match, if false, raise error.
-    step 2: check the dst file exist, if true, skip.
-    step 3: merge model predictions into the sample label, ignoring IoU > 0.5.
-    step 4: save the merged label to buffer_dir/merge_prediction/.
+    step 1: first check the filename match, if false, raise error. step 2: check the dst file exist, if true, skip. step
+    3: merge model predictions into the sample label, ignoring IoU > 0.5. step 4: save the merged label to
+    buffer_dir/merge_prediction/.
 
     Args:
         buffer_dir: str, buffer directory to save results
         sample_json: str, path to sample grounding label json file
         model_predict_json: str, path to model prediction json file.
-
     """
     dst_dir = os.path.join(buffer_dir, "merge_prediction")
     os.makedirs(dst_dir, exist_ok=True)
