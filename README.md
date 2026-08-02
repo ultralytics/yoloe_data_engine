@@ -21,7 +21,7 @@ A [Python](https://www.python.org/) environment with the [`ultralytics`](https:/
 pip install ultralytics matplotlib
 ```
 
-There is no `requirements.txt` — the scripts import from `ultralytics` and are meant to run alongside a local Ultralytics checkout. A CUDA GPU is required for prediction, and the multiprocess agent expects several of them (`cuda:0`–`cuda:3` by default).
+There is no `requirements.txt` — the scripts import from `ultralytics` and are meant to run alongside a local Ultralytics checkout. A CUDA GPU is required for prediction; `DataEngineAgent` takes a list of devices and defaults to a single `cuda:0`, while the example at the bottom of `data_engine_agent.py` spreads the work across four.
 
 ## ⚙️ How It Works
 
@@ -33,7 +33,7 @@ The engine has two layers over the same logic:
 A typical run moves through four stages:
 
 1. **Load labels.** `DataEngine.load_cached_label()` reads an Ultralytics `.cache` file in either `grounding` or `detection` style. For raw grounding annotations, `DataEngineAgent.multi_process_load_grounding_data()` first explodes the source JSON into one sample JSON per image under the buffer directory.
-2. **Predict.** `DataEngine.load_yoloe()` loads the YOLOE segmentation checkpoint, and `set_classes()` sets the vocabulary — from a dataset YAML, an explicit list of names, or a precomputed MobileCLIP text-embedding `.pt` file. `DataEngineAgent.multi_process_batch_model_predict()` then writes one prediction JSON per image.
+2. **Predict.** `DataEngine.load_yoloe()` loads the YOLOE segmentation checkpoint, and `set_classes()` sets the vocabulary — from a dataset YAML, an explicit list of names, or the keys of a MobileCLIP text-embedding `.pt` file (that file supplies the class names only; the prompt embeddings are recomputed by the model). `DataEngineAgent.multi_process_batch_model_predict()` then writes one prediction JSON per image.
 3. **Merge.** Predictions are matched against the existing boxes, and any that overlap a ground-truth box above the IoU threshold are dropped; the rest are appended to the label. `multi_process_merge_prediction()` folds the results back into the sample files, and `save_cached_label()` writes the updated cache.
 4. **Refine and inspect.** `refine_text.py` re-scores the text phrases on grounding labels using YOLOE visual prompt embeddings and writes an updated cache. The `data_visual_*.py` and `grounding_dataset_visualizer.py` scripts render labels and predictions so the output can be checked by eye.
 
