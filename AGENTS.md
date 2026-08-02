@@ -2,7 +2,7 @@
 
 This file provides guidance to AI coding agents (Claude Code, etc.) when working with code in this repository. CLAUDE.md is a symlink to this file.
 
-`yoloe_data_engine` holds the working scripts used to build and refine YOLOE grounding and detection training data: load labels from Ultralytics `.cache` or grounding JSON, run YOLOE predictions over them, merge the new boxes back into the labels, and visualize the result. It is a script collection, not a package — there is no `pyproject.toml`, no LICENSE file, no tests, and dataset/model/buffer paths are hard-coded in each script.
+`yoloe_data_engine` holds the working scripts used to build and refine YOLOE grounding and detection training data: load labels from Ultralytics `.cache` or grounding JSON, run YOLOE predictions over them, merge the new boxes back into the labels, and visualize the result. It is a script collection, not a package — there is no `pyproject.toml` and no tests, and dataset/model/buffer paths are hard-coded in each script. The repo is AGPL-3.0 licensed.
 
 ## Core Principles (CRITICAL)
 
