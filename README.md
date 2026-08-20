@@ -1,8 +1,8 @@
-<a href="https://www.ultralytics.com/"><img src="https://raw.githubusercontent.com/ultralytics/assets/main/logo/Ultralytics_Logotype_Original.svg" width="320" alt="Ultralytics logo"></a>
+<a href="https://www.ultralytics.com"><img src="https://raw.githubusercontent.com/ultralytics/assets/main/logo/Ultralytics_Logotype_Original.svg" width="320" alt="Ultralytics logo"></a>
 
 # 🚀 YOLOE Data Engine
 
-The YOLOE Data Engine builds and refines training data for [YOLOE](https://docs.ultralytics.com/models/yoloe/), the real-time open-vocabulary model in the [Ultralytics](https://www.ultralytics.com/) family. It closes the loop between a dataset and a model: existing labels are loaded, a trained YOLOE model predicts over the same images, and any prediction not already covered by a ground-truth box is merged back into the labels. The result is a denser, better-covered dataset for the next training run.
+The YOLOE Data Engine builds and refines training data for [YOLOE](https://docs.ultralytics.com/models/yoloe), the real-time open-vocabulary model in the [Ultralytics](https://www.ultralytics.com) family. It closes the loop between a dataset and a model: existing labels are loaded, a trained YOLOE model predicts over the same images, and any prediction not already covered by a ground-truth box is merged back into the labels. The result is a denser, better-covered dataset for the next training run.
 
 The pipeline handles both **grounding** data (free-form text phrases tied to image regions, such as Flickr30k Entities or mixed-grounding GQA) and **detection** data (a fixed class vocabulary, such as Objects365), and it includes tooling to refine the text prompts attached to grounding labels and to visually inspect everything it produces.
 
@@ -10,7 +10,7 @@ This is a working research repository: a collection of scripts rather than an in
 
 [![Ultralytics Actions](https://github.com/ultralytics/yoloe_data_engine/actions/workflows/format.yml/badge.svg)](https://github.com/ultralytics/yoloe_data_engine/actions/workflows/format.yml)
 [![Ultralytics Discord](https://img.shields.io/discord/1089800235347353640?logo=discord&logoColor=white&label=Discord&color=blue)](https://discord.com/invite/ultralytics)
-[![Ultralytics Forums](https://img.shields.io/discourse/users?server=https%3A%2F%2Fcommunity.ultralytics.com&logo=discourse&label=Forums&color=blue)](https://community.ultralytics.com/)
+[![Ultralytics Forums](https://img.shields.io/discourse/users?server=https%3A%2F%2Fcommunity.ultralytics.com&logo=discourse&label=Forums&color=blue)](https://community.ultralytics.com)
 [![Ultralytics Reddit](https://img.shields.io/reddit/subreddit-subscribers/ultralytics?style=flat&logo=reddit&logoColor=white&label=Reddit&color=blue)](https://reddit.com/r/ultralytics)
 
 ## 🔧 Requirements

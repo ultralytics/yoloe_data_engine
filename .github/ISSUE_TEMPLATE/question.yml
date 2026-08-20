@@ -14,7 +14,7 @@ body:
     attributes:
       label: Search before asking
       description: >
-        Please search the [YOLOE Docs](https://docs.ultralytics.com/models/yoloe/), [issues](https://github.com/ultralytics/yoloe_data_engine/issues) and [discussions](https://github.com/orgs/ultralytics/discussions) to see if a similar question already exists.
+        Please search the [YOLOE Docs](https://docs.ultralytics.com/models/yoloe), [issues](https://github.com/ultralytics/yoloe_data_engine/issues) and [discussions](https://github.com/orgs/ultralytics/discussions) to see if a similar question already exists.
       options:
         - label: >
             I have searched the Ultralytics [issues](https://github.com/ultralytics/yoloe_data_engine/issues) and [discussions](https://github.com/orgs/ultralytics/discussions) and found no similar questions.
